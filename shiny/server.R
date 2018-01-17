@@ -26,20 +26,31 @@ shinyServer(function(input, output, session) {
                  rdat_tsne = NULL
                  )
         } else {
-            resource = resource_list %>%
-                filter(label == input$dataset)
-            rdat = read_rds(file.path('data/robj', resource$robj))
-            rdat_tsne = read_rds(file.path('data/robj', resource$tsne))
+            withProgress(message = 'Load seurat object',
+                         detail = 'Locate RDS file path',
+                         value = 0, {
+                             resource = resource_list %>%
+                                 filter(label == input$dataset)
+                             incProgress(0.1, message = 'Read RDS file')
 
-            resolution_list = str_subset(colnames(rdat@meta.data), '^res\\.') %>%
-                str_extract('(?<=res.).*') %>%
-                as.numeric() %>%
-                sort() %>%
-                as.character()
+                             rdat = read_rds(file.path('data/robj', resource$robj))
+                             incProgress(0.6, message = 'Read t-SNE coordinates')
 
-            updateSelectizeInput(session, 'resolution',
-                                 choices = resolution_list)
-            enable('resolution')
+                             rdat_tsne = read_rds(file.path('data/robj', resource$tsne))
+                             incProgress(0.2, message = 'Get resolution list')
+
+                             resolution_list = str_subset(colnames(rdat@meta.data), '^res\\.') %>%
+                                 str_extract('(?<=res.).*') %>%
+                                 as.numeric() %>%
+                                 sort() %>%
+                                 as.character()
+
+                             updateSelectizeInput(session, 'resolution',
+                                                  choices = resolution_list)
+                             enable('resolution')
+
+                             setProgress(value = 1, message = 'Finish!')
+                         })
 
             list(species = resource$species,
                  rdat = rdat,
@@ -49,22 +60,28 @@ shinyServer(function(input, output, session) {
     }) %>% debounce(1000)
 
     get_input_gene <- reactive({
-        if (is.null(get_dataset()$species)) {
-            ''
-        } else {
+        input_gene = ''
+
+        if (!is.null(get_dataset()$species)) {
             if (input$tx_gene %in% rownames(rdat@data)) {
-                input$tx_gene
+                input_gene = input$tx_gene
             } else {
                 if (get_dataset()$species == 'human') {
-                    c(limma::alias2Symbol(stringr::str_to_upper(input$tx_gene),
+                    input_gene = c(limma::alias2Symbol(stringr::str_to_upper(input$tx_gene),
                                           species = 'Hs'), '')[1]
                 } else if (get_dataset()$species == 'mouse') {
-                    c(limma::alias2Symbol(stringr::str_to_title(input$tx_gene),
+                    input_gene = c(limma::alias2Symbol(stringr::str_to_title(input$tx_gene),
                                           species = 'Mm'), '')[1]
                 } else {
-                    ''
+                    input_gene = ''
                 }
             }
+        }
+
+        if (!(input_gene %in% rownames(rdat@data))) {
+            ''
+        } else {
+            input_gene
         }
     }) %>% debounce(1500)
 
