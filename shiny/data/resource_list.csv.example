@@ -1,3 +1,3 @@
-label,species,robj
-bl1,mouse,bl1.Robj
-sp2,mouse,sp2.Robj
+label,description,species,robj,tsne
+bl1,mouse blood,mouse,bl1.rds,bl1.projection.rds
+sp2,mouse spleen,mouse,sp2.rds,sp2.projection.rds

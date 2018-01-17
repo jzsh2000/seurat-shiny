@@ -15,7 +15,7 @@ library(tidyverse)
 library(here)
 
 resource_list <- read_csv('data/resource_list.csv',
-                          col_types = 'cccc')
+                          col_types = 'ccccc')
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
@@ -33,9 +33,9 @@ shinyUI(fluidPage(
                                                             'label')]))),
         conditionalPanel(
             'input.tabset_main == "gene expression"',
-            checkboxInput(inputId = 'cb_label',
-                          label = 'Label cluster center',
-                          value = TRUE),
+            # checkboxInput(inputId = 'cb_label',
+            #               label = 'Label cluster center',
+            #               value = TRUE),
             checkboxInput(inputId = 'cb_cellranger',
                           label = 'Use cellranger t-SNE',
                           value = FALSE),
