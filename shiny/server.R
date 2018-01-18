@@ -63,7 +63,7 @@ shinyServer(function(input, output, session) {
         input_gene = ''
 
         if (!is.null(get_dataset()$species)) {
-            if (input$tx_gene %in% rownames(rdat@data)) {
+            if (input$tx_gene %in% rownames(get_dataset()$rdat@data)) {
                 input_gene = input$tx_gene
             } else {
                 if (get_dataset()$species == 'human') {
@@ -78,18 +78,13 @@ shinyServer(function(input, output, session) {
             }
         }
 
-        if (!(input_gene %in% rownames(rdat@data))) {
-            ''
-        } else {
+        if (input_gene != '' &&
+            (input_gene %in% rownames(get_dataset()$rdat@data))) {
             input_gene
+        } else {
+            ''
         }
     }) %>% debounce(1500)
-
-    output$plot_tsne <- renderPlot({
-        if (!is.null(get_dataset()$rdat)) {
-
-        }
-    })
 
     output$plot_gene_expr <- renderPlot({
         res_name = paste0('res.', input$resolution)
