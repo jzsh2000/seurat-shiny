@@ -200,6 +200,6 @@ shinyServer(function(input, output, session) {
         }
     # }, width = 800, height = 600)
     }, height = function() {
-        session$clientData$output_plot_gene_expr_width
+        session$clientData$output_plot_gene_expr_width * 0.7
     })
 })
