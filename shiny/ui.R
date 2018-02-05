@@ -14,6 +14,9 @@ library(shinyjs)
 library(tidyverse)
 library(here)
 
+if (file.exists('config.txt')) {
+    source('config.txt')
+}
 resource_list <- read_csv('data/resource_list.csv',
                           col_types = 'ccccc')
 
@@ -21,7 +24,7 @@ resource_list <- read_csv('data/resource_list.csv',
 shinyUI(fluidPage(
 
   # Application title
-  titlePanel("single-cell RNA-seq data visualization"),
+  titlePanel(ifelse(exists('app_title'), app_title, "single-cell RNA-seq data visualization")),
 
   # Sidebar with a slider input for number of bins
   sidebarLayout(
