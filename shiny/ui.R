@@ -34,20 +34,35 @@ shinyUI(fluidPage(
                        choices = c('(none)' = 'none',
                                    deframe(resource_list[,c('description',
                                                             'label')]))),
+        checkboxInput(inputId = 'cb_cellranger',
+                      label = 'Use cellranger t-SNE',
+                      value = FALSE),
+        disabled(
+            selectizeInput(inputId = 'resolution',
+                           label = 'Cluster resolution',
+                           choices = c())
+        ),
         conditionalPanel(
             'input.tabset_main == "gene expression"',
             # checkboxInput(inputId = 'cb_label',
             #               label = 'Label cluster center',
             #               value = TRUE),
-            checkboxInput(inputId = 'cb_cellranger',
-                          label = 'Use cellranger t-SNE',
-                          value = FALSE),
-            disabled(
-                selectizeInput(inputId = 'resolution',
-                               label = 'Cluster resolution',
-                               choices = c())
-            ),
             textInput(inputId = 'tx_gene',
+                      label = 'Gene name',
+                      placeholder = 'Your awesome gene')
+        ),
+        conditionalPanel(
+            'input.tabset_main == "co-expression"',
+            selectizeInput(inputId = 'cluster_id',
+                           label = 'Use cluster',
+                           choices = NULL,
+                           selected = NULL,
+                           multiple = TRUE
+                           ),
+            textInput(inputId = 'tx_gene1',
+                      label = 'Gene name',
+                      placeholder = 'Your awesome gene'),
+            textInput(inputId = 'tx_gene2',
                       label = 'Gene name',
                       placeholder = 'Your awesome gene')
         )
@@ -59,8 +74,13 @@ shinyUI(fluidPage(
                     tabPanel(
                         title = 'gene expression',
                         plotOutput('plot_gene_expr')
+                    ),
+                    tabPanel(
+                        title = 'co-expression',
+                        verbatimTextOutput('coefficient'),
+                        plotOutput('plot_gene_expr2')
                     )
-                    )
+        )
 
     )
   )

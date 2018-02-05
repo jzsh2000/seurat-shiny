@@ -19,6 +19,24 @@ resource_list <- read_csv('data/resource_list.csv',
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
+    plot_height_func <- function() {
+        session$clientData$output_plot_gene_expr_width * 0.7
+    }
+
+    # get standard gene name
+    gene_name_std <- function(gene_name, species = 'human') {
+        if (species == 'human') {
+            input_gene = c(limma::alias2Symbol(stringr::str_to_upper(gene_name),
+                                               species = 'Hs'), '')[1]
+        } else if (species == 'mouse') {
+            input_gene = c(limma::alias2Symbol(stringr::str_to_title(gene_name),
+                                               species = 'Mm'), '')[1]
+        } else {
+            input_gene = ''
+        }
+        input_gene
+    }
+
     get_dataset <- reactive({
         if (input$dataset == 'none') {
             list(species = NULL,
@@ -59,6 +77,12 @@ shinyServer(function(input, output, session) {
         }
     }) %>% debounce(1000)
 
+    observe(if (!is.null(input$resolution) &&
+                !is.null(get_dataset()$rdat)) {
+        res_name = paste0('res.', input$resolution)
+        updateSelectizeInput(session, 'cluster_id', choices = as.character(sort(as.integer(unique(get_dataset()$rdat@meta.data[[res_name]])))), selected = '0')
+    })
+
     get_input_gene <- reactive({
         input_gene = ''
 
@@ -66,15 +90,45 @@ shinyServer(function(input, output, session) {
             if (input$tx_gene %in% rownames(get_dataset()$rdat@data)) {
                 input_gene = input$tx_gene
             } else {
-                if (get_dataset()$species == 'human') {
-                    input_gene = c(limma::alias2Symbol(stringr::str_to_upper(input$tx_gene),
-                                          species = 'Hs'), '')[1]
-                } else if (get_dataset()$species == 'mouse') {
-                    input_gene = c(limma::alias2Symbol(stringr::str_to_title(input$tx_gene),
-                                          species = 'Mm'), '')[1]
-                } else {
-                    input_gene = ''
-                }
+                input_gene = gene_name_std(input$tx_gene, get_dataset()$species)
+            }
+        }
+
+        if (input_gene != '' &&
+            (input_gene %in% rownames(get_dataset()$rdat@data))) {
+            input_gene
+        } else {
+            ''
+        }
+    }) %>% debounce(1500)
+
+    get_input_gene1 <- reactive({
+        input_gene = ''
+
+        if (!is.null(get_dataset()$species)) {
+            if (input$tx_gene1 %in% rownames(get_dataset()$rdat@data)) {
+                input_gene = input$tx_gene1
+            } else {
+                input_gene = gene_name_std(input$tx_gene1, get_dataset()$species)
+            }
+        }
+
+        if (input_gene != '' &&
+            (input_gene %in% rownames(get_dataset()$rdat@data))) {
+            input_gene
+        } else {
+            ''
+        }
+    }) %>% debounce(1500)
+
+    get_input_gene2 <- reactive({
+        input_gene = ''
+
+        if (!is.null(get_dataset()$species)) {
+            if (input$tx_gene2 %in% rownames(get_dataset()$rdat@data)) {
+                input_gene = input$tx_gene2
+            } else {
+                input_gene = gene_name_std(input$tx_gene2, get_dataset()$species)
             }
         }
 
@@ -178,7 +232,48 @@ shinyServer(function(input, output, session) {
             }
         }
     # }, width = 800, height = 600)
-    }, height = function() {
-        session$clientData$output_plot_gene_expr_width * 0.7
+    }, height = plot_height_func)
+
+    shared_data <- reactiveValues(cor = NULL)
+
+    output$plot_gene_expr2 <- renderPlot({
+        res_name = paste0('res.', input$resolution)
+        if (!is.null(get_dataset()$rdat) &&
+            get_input_gene1() != '' &&
+            (get_input_gene1() %in% rownames(get_dataset()$rdat@data)) &&
+            get_input_gene2() != '' &&
+            (get_input_gene2() %in% rownames(get_dataset()$rdat@data)) &&
+            get_input_gene1() != get_input_gene2()) {
+
+            valid_cells = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] %in% input$cluster_id]
+
+            plot_dat <- inner_join(
+                enframe(get_dataset()$rdat@data[get_input_gene1(),], name = 'Barcode', value = get_input_gene1()),
+                enframe(get_dataset()$rdat@data[get_input_gene2(),], name = 'Barcode', value = get_input_gene2()),
+                by = 'Barcode'
+            ) %>%
+                filter(Barcode %in% valid_cells)
+
+            shared_data$cor = cor(plot_dat[[get_input_gene1()]],
+                                  plot_dat[[get_input_gene2()]])
+            ggplot(plot_dat,
+                aes_string(
+                    x = get_input_gene1(),
+                    y = get_input_gene2()
+                    )
+            ) +
+            geom_point(size = 1) +
+            coord_fixed() +
+            theme_bw() +
+            theme(panel.grid.major = element_blank(),
+                  panel.grid.minor = element_blank(),
+                  legend.position = "none")
+
+        }
+    }, height = plot_height_func)
+
+    output$coefficient <- renderText({
+        paste('Pearson correlation coeffient:', shared_data$cor)
     })
 })
+
