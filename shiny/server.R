@@ -19,8 +19,10 @@ resource_list <- read_csv('data/resource_list.csv',
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
-    plot_height_func <- function() {
-        session$clientData$output_plot_gene_expr_width * 0.7
+    plot_height_func <- function(scale_factor) {
+        return(function() {
+            session$clientData$output_plot_gene_expr_width * scale_factor
+        })
     }
 
     # get standard gene name
@@ -232,7 +234,7 @@ shinyServer(function(input, output, session) {
             }
         }
     # }, width = 800, height = 600)
-    }, height = plot_height_func)
+    }, height = plot_height_func(0.7))
 
     shared_data <- reactiveValues(cor = NULL)
 
@@ -270,7 +272,7 @@ shinyServer(function(input, output, session) {
                   legend.position = "none")
 
         }
-    }, height = plot_height_func)
+    }, height = plot_height_func(0.6))
 
     output$coefficient <- renderText({
         paste('Pearson correlation coeffient:', shared_data$cor)
