@@ -153,6 +153,13 @@ shinyServer(function(input, output, session) {
         cluster_dat
     })
 
+    output$cluster_size <- renderText({
+        if (!is.null(get_dataset()$rdat)) {
+            res_name = paste0('res.', input$resolution)
+            table(get_dataset()$rdat@meta.data[[res_name]])
+        }
+    })
+
     get_tsne_plot <- reactive({
         res_name = paste0('res.', input$resolution)
         if (input$cb_cellranger) {

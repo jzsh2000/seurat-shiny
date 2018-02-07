@@ -49,7 +49,9 @@ shinyUI(fluidPage(
             #               value = TRUE),
             textInput(inputId = 'tx_gene',
                       label = 'Gene name',
-                      placeholder = 'Your awesome gene')
+                      placeholder = 'Your awesome gene'),
+
+            verbatimTextOutput(outputId = 'cluster_size')
         ),
         conditionalPanel(
             'input.tabset_main == "co-expression"',
