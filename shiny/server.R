@@ -142,49 +142,66 @@ shinyServer(function(input, output, session) {
         }
     }) %>% debounce(1500)
 
-    get_cluster_dat <- reactive({
+    get_cluster_dat_cellranger <- reactive({
         res_name = paste0('res.', input$resolution)
         cluster_dat <- get_dataset()$rdat_tsne %>%
             inner_join(get_dataset()$rdat@meta.data %>%
                            rownames_to_column('Barcode') %>%
                            as_data_frame() %>%
                            dplyr::select(Barcode, one_of(res_name)),
-                       by = 'Barcode')
+                       by = 'Barcode') %>%
+            dplyr::rename_(cluster = res_name)
         cluster_dat
     })
 
-    output$cluster_size <- renderText({
-        if (!is.null(get_dataset()$rdat)) {
-            res_name = paste0('res.', input$resolution)
-            table(get_dataset()$rdat@meta.data[[res_name]])
-        }
+    get_cluster_dat_seurat <- reactive({
+        res_name = paste0('res.', input$resolution)
+        cluster_dat <- GetDimReduction(get_dataset()$rdat,
+                                       reduction.type = 'tsne',
+                                       slot = 'cell.embeddings') %>%
+            as.data.frame() %>%
+            rownames_to_column(var = 'Barcode') %>%
+            as_data_frame() %>%
+            inner_join(get_dataset()$rdat@meta.data %>%
+                           rownames_to_column('Barcode') %>%
+                           as_data_frame() %>%
+                           dplyr::select(Barcode, one_of(res_name)),
+                       by = 'Barcode') %>%
+            dplyr::rename_(cluster = res_name)
+        cluster_dat
     })
 
     get_tsne_plot <- reactive({
         res_name = paste0('res.', input$resolution)
-        if (input$cb_cellranger) {
-            ggplot(data = get_cluster_dat(),
-                   mapping = aes_string(x = 'tSNE_1', y = 'tSNE_2',
-                                        color = res_name)) +
-                geom_point(size = 1) +
-                geom_text(get_cluster_dat() %>%
-                              group_by_(res_name) %>%
-                              summarise(tSNE_1 = mean(tSNE_1),
-                                        tSNE_2 = mean(tSNE_2)),
-                          mapping = aes_string(x = 'tSNE_1', y = 'tSNE_2', label = res_name),
-                          color = 'black') +
-                coord_fixed() +
-                theme_bw() +
-                theme(panel.grid.major = element_blank(),
-                      panel.grid.minor = element_blank(),
-                      legend.position = "none")
-        } else {
-            Seurat::TSNEPlot(get_dataset()$rdat,
-                             no.legend = TRUE,
-                             do.label = TRUE,
-                             group.by = res_name) +
-                coord_fixed()
+        label_column = 'cluster'
+        if (input$cb_showsize) {
+            label_column = 'cluster_with_size'
         }
+
+        if (input$cb_cellranger) {
+            plot_dat = get_cluster_dat_cellranger()
+        } else {
+            plot_dat = get_cluster_dat_seurat()
+        }
+
+        ggplot(data = plot_dat,
+               mapping = aes(x = tSNE_1, y = tSNE_2, color = cluster)) +
+            geom_point(size = 1) +
+            geom_text(plot_dat %>%
+                          group_by(cluster) %>%
+                          summarise(tSNE_1 = mean(tSNE_1),
+                                    tSNE_2 = mean(tSNE_2),
+                                    cluster_size = n()) %>%
+                          mutate(cluster_with_size = paste0('Cluster ', cluster, ' (', cluster_size, ')')),
+                      mapping = aes_string(x = 'tSNE_1', y = 'tSNE_2',
+                                           label = label_column),
+                      color = 'black',
+                      fontface = "bold") +
+            coord_fixed() +
+            theme_bw() +
+            theme(panel.grid.major = element_blank(),
+                  panel.grid.minor = element_blank(),
+                  legend.position = "none")
     })
 
     output$plot_gene_expr <- renderPlot({
@@ -195,37 +212,31 @@ shinyServer(function(input, output, session) {
 
                 plot_1 <- get_tsne_plot()
                 if (input$cb_cellranger) {
-
-                    plot_2 <- ggplot(get_cluster_dat() %>%
-                                         inner_join(
-                                             enframe(get_dataset()$rdat@data[get_input_gene(),], name = 'Barcode', value = get_input_gene()),
-                                             by = 'Barcode'
-                                         ),
-                                     aes_string(
-                                         x = 'tSNE_1',
-                                         y = 'tSNE_2',
-                                         color = get_input_gene()
-                                         )
-                                     ) +
-                        scale_colour_gradient(low = 'grey', high = 'blue') +
-                        geom_point(size = 1) +
-                        coord_fixed() +
-                        theme_bw() +
-                        theme(panel.grid.major = element_blank(),
-                              panel.grid.minor = element_blank(),
-                              legend.position = "none")
+                    plot_dat <- get_cluster_dat_cellranger()
                 } else {
-
-                    plot_2 <- Seurat::FeaturePlot(get_dataset()$rdat,
-                                                  features.plot = get_input_gene(),
-                                                  cols.use = c('grey', 'blue'),
-                                                  do.return = TRUE)[[1]] +
-                        theme_bw() +
-                        theme(panel.grid.major = element_blank(),
-                              panel.grid.minor = element_blank(),
-                              legend.position = "none") +
-                        coord_fixed()
+                    plot_dat <- get_cluster_dat_seurat()
                 }
+
+                plot_dat  %>%
+                    inner_join(
+                        enframe(get_dataset()$rdat@data[get_input_gene(),], name = 'Barcode', value = get_input_gene()),
+                        by = 'Barcode'
+                    )
+
+                plot_2 <- ggplot(plot_dat,
+                                 aes_string(
+                                     x = 'tSNE_1',
+                                     y = 'tSNE_2',
+                                     color = get_input_gene()
+                                 )
+                ) +
+                    scale_colour_gradient(low = 'grey', high = 'blue') +
+                    geom_point(size = 1) +
+                    coord_fixed() +
+                    theme_bw() +
+                    theme(panel.grid.major = element_blank(),
+                          panel.grid.minor = element_blank(),
+                          legend.position = "none")
 
                 plot_3 <- Seurat::VlnPlot(get_dataset()$rdat,
                                           group.by = res_name,

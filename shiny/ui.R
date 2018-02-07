@@ -37,6 +37,15 @@ shinyUI(fluidPage(
         checkboxInput(inputId = 'cb_cellranger',
                       label = 'Use cellranger t-SNE',
                       value = FALSE),
+        conditionalPanel(
+            'input.tabset_main == "gene expression"',
+            # checkboxInput(inputId = 'cb_label',
+            #               label = 'Label cluster center',
+            #               value = TRUE),
+            checkboxInput(inputId = 'cb_showsize',
+                          label = 'Show cluster size',
+                          value = FALSE)
+        ),
         disabled(
             selectizeInput(inputId = 'resolution',
                            label = 'Cluster resolution',
@@ -49,9 +58,7 @@ shinyUI(fluidPage(
             #               value = TRUE),
             textInput(inputId = 'tx_gene',
                       label = 'Gene name',
-                      placeholder = 'Your awesome gene'),
-
-            verbatimTextOutput(outputId = 'cluster_size')
+                      placeholder = 'Your awesome gene')
         ),
         conditionalPanel(
             'input.tabset_main == "co-expression"',
