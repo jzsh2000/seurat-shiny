@@ -10,6 +10,7 @@
 library(shiny)
 library(shinyjs)
 library(tidyverse)
+library(magrittr)
 library(Seurat)
 library(DT)
 library(cowplot)
@@ -217,17 +218,17 @@ shinyServer(function(input, output, session) {
                     plot_dat <- get_cluster_dat_seurat()
                 }
 
-                plot_dat  %>%
+                plot_dat  %<>%
                     inner_join(
-                        enframe(get_dataset()$rdat@data[get_input_gene(),], name = 'Barcode', value = get_input_gene()),
+                        enframe(get_dataset()$rdat@data[get_input_gene(),], name = 'Barcode', value = 'expr'),
                         by = 'Barcode'
                     )
 
                 plot_2 <- ggplot(plot_dat,
-                                 aes_string(
-                                     x = 'tSNE_1',
-                                     y = 'tSNE_2',
-                                     color = get_input_gene()
+                                 aes(
+                                     x = tSNE_1,
+                                     y = tSNE_2,
+                                     color = expr
                                  )
                 ) +
                     scale_colour_gradient(low = 'grey', high = 'blue') +
@@ -240,7 +241,8 @@ shinyServer(function(input, output, session) {
 
                 plot_3 <- Seurat::VlnPlot(get_dataset()$rdat,
                                           group.by = res_name,
-                                          features.plot = get_input_gene())
+                                          features.plot = get_input_gene(),
+                                          do.return = TRUE)
 
                 plot_grid(
                     plot_grid(plot_1, plot_2, align = 'h'),
