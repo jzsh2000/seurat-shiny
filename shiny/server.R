@@ -16,7 +16,7 @@ library(DT)
 library(cowplot)
 
 resource_list <- read_csv('data/resource_list.csv',
-                          col_types = 'cccccd')
+                          col_types = 'ccccd')
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
@@ -54,10 +54,14 @@ shinyServer(function(input, output, session) {
                                  filter(label == input$dataset)
                              incProgress(0.1, message = 'Read RDS file')
 
-                             rdat = read_rds(file.path('data/robj', resource$robj))
+                             # print(file.path('data', resource$data_dir, paste0(resource$data_dir, '.rds')))
+                             rdat = read_rds(file.path('data', resource$data_dir, paste0(resource$data_dir, '.rds')))
                              incProgress(0.6, message = 'Read t-SNE coordinates')
 
-                             rdat_tsne = read_rds(file.path('data/robj', resource$cellranger_tsne))
+                             rdat_tsne = read_csv(file.path('data', resource$data_dir, 'projection.csv'), col_types = 'cdd') %>%
+                                 mutate(Barcode = str_extract(Barcode, '^[^-]+')) %>%
+                                 rename(tSNE_1 = `TSNE-1`, tSNE_2 = `TSNE-2`)
+
                              incProgress(0.2, message = 'Get resolution list')
 
                              resolution_list = str_subset(colnames(rdat@meta.data), '^res\\.') %>%

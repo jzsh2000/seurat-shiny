@@ -18,7 +18,7 @@ if (file.exists('config.txt')) {
     source('config.txt')
 }
 resource_list <- read_csv('data/resource_list.csv',
-                          col_types = 'cccccd')
+                          col_types = 'ccccd')
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
