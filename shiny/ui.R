@@ -18,7 +18,7 @@ if (file.exists('config.txt')) {
     source('config.txt')
 }
 resource_list <- read_csv('data/resource_list.csv',
-                          col_types = 'ccccc')
+                          col_types = 'cccccd')
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
@@ -35,7 +35,7 @@ shinyUI(fluidPage(
                                    deframe(resource_list[,c('description',
                                                             'label')]))),
         checkboxInput(inputId = 'cb_cellranger',
-                      label = 'Use cellranger t-SNE',
+                      label = 'Use original t-SNE',
                       value = FALSE),
         conditionalPanel(
             'input.tabset_main == "gene expression"',

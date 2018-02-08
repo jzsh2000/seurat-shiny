@@ -16,7 +16,7 @@ library(DT)
 library(cowplot)
 
 resource_list <- read_csv('data/resource_list.csv',
-                          col_types = 'ccccc')
+                          col_types = 'cccccd')
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
@@ -57,7 +57,7 @@ shinyServer(function(input, output, session) {
                              rdat = read_rds(file.path('data/robj', resource$robj))
                              incProgress(0.6, message = 'Read t-SNE coordinates')
 
-                             rdat_tsne = read_rds(file.path('data/robj', resource$tsne))
+                             rdat_tsne = read_rds(file.path('data/robj', resource$cellranger_tsne))
                              incProgress(0.2, message = 'Get resolution list')
 
                              resolution_list = str_subset(colnames(rdat@meta.data), '^res\\.') %>%
@@ -66,8 +66,17 @@ shinyServer(function(input, output, session) {
                                  sort() %>%
                                  as.character()
 
-                             updateSelectizeInput(session, 'resolution',
-                                                  choices = resolution_list)
+                             default_resolution = as.character(resource$default_resolution)
+                             if (!is.na(default_resolution) &&
+                                 default_resolution %in% resolution_list) {
+                                 updateSelectizeInput(session, 'resolution',
+                                                      choices = resolution_list,
+                                                      selected = default_resolution)
+                             } else {
+                                 updateSelectizeInput(session, 'resolution',
+                                                      choices = resolution_list)
+                             }
+
                              enable('resolution')
 
                              setProgress(value = 1, message = 'Finish!')
