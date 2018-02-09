@@ -159,7 +159,7 @@ shinyServer(function(input, output, session) {
     get_cluster_dat_cellranger <- reactive({
         res_name = paste0('res.', input$resolution)
         cluster_dat <- get_dataset()$rdat_tsne %>%
-            inner_join(get_dataset()$rdat@meta.data %>%
+            left_join(get_dataset()$rdat@meta.data %>%
                            rownames_to_column('Barcode') %>%
                            as_data_frame() %>%
                            dplyr::select(Barcode, one_of(res_name)),
