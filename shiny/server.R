@@ -40,12 +40,17 @@ shinyServer(function(input, output, session) {
         input_gene
     }
 
+    dataset_info <- reactiveValues(
+        species = NULL,
+        rdat = NULL,
+        rdat_tsne = NULL
+    )
+
     get_dataset <- reactive({
         if (input$dataset == 'none') {
-            list(species = NULL,
-                 rdat = NULL,
-                 rdat_tsne = NULL
-                 )
+            dataset_info$species = NULL
+            dataset_info$rdat = NULL
+            dataset_info$rdat_tsne = NULL
         } else {
             withProgress(message = 'Load seurat object',
                          detail = 'Locate RDS file path',
@@ -86,17 +91,29 @@ shinyServer(function(input, output, session) {
                              setProgress(value = 1, message = 'Finish!')
                          })
 
-            list(species = resource$species,
-                 rdat = rdat,
-                 rdat_tsne = rdat_tsne
-                 )
+            dataset_info$species = resource$species
+            dataset_info$rdat = rdat
+            dataset_info$rdat_rsne = rdat_tsne
         }
+
+        list(species = dataset_info$species,
+             rdat = dataset_info$rdat,
+             rdat_tsne = dataset_info$rdat_tsne
+        )
     }) %>% debounce(1000)
 
     observe(if (!is.null(input$resolution) &&
                 !is.null(get_dataset()$rdat)) {
         res_name = paste0('res.', input$resolution)
-        updateSelectizeInput(session, 'cluster_id', choices = as.character(sort(as.integer(unique(get_dataset()$rdat@meta.data[[res_name]])))), selected = '0')
+        res_choices = as.character(sort(as.integer(unique(get_dataset()$rdat@meta.data[[res_name]]))))
+
+        updateSelectizeInput(session, 'cluster_id',
+                             choices = res_choices,
+                             selected = '0')
+        updateSelectizeInput(session, 'sig_cluster_1',
+                             choices = c('(none)', res_choices))
+        updateSelectizeInput(session, 'sig_cluster_2',
+                             choices = c('all other cells', res_choices))
     })
 
     get_input_gene <- reactive({
@@ -309,6 +326,39 @@ shinyServer(function(input, output, session) {
 
     output$coefficient <- renderText({
         paste('Pearson correlation coeffient:', shared_data$cor)
+    })
+
+    output$table_sig_gene <- DT::renderDataTable({
+        if (input$sig_cluster_1 != '(none)' &&
+            input$sig_cluster_1 != input$sig_cluster_2) {
+            res_name = paste0('res.', input$resolution)
+            cell_1 = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] == input$sig_cluster_1]
+            if (input$sig_cluster_2 == 'all other cells') {
+                output_df = FindMarkers(dataset_info$rdat,
+                                        ident.1 = cell_1,
+                                        ident.2 = NULL,
+                                        test.use = 'roc',
+                                        min.pct = 0.25,
+                                        only.pos = TRUE
+                                        )
+            } else {
+                cell_2 = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] == input$sig_cluster_2]
+                output_df = FindMarkers(dataset_info$rdat,
+                                        ident.1 = cell_1,
+                                        ident.2 = cell_2,
+                                        test.use = 'roc',
+                                        min.pct = 0.25,
+                                        only.pos = TRUE
+                                        )
+            }
+
+            output_df %>%
+                rownames_to_column(var = 'gene') %>%
+                as_data_frame() %>%
+                dplyr::select(-p_val_adj) %>%
+                dplyr::filter(myAUC >= 0.7) %>%
+                arrange(desc(myAUC))
+        }
     })
 })
 

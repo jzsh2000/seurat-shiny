@@ -74,6 +74,18 @@ shinyUI(fluidPage(
             textInput(inputId = 'tx_gene2',
                       label = 'Gene name',
                       placeholder = 'Your awesome gene')
+        ),
+        conditionalPanel(
+            'input.tabset_main == "signature"',
+            selectizeInput(inputId = 'sig_cluster_1',
+                           label = 'Use cluster',
+                           choices = '(none)',
+                           multiple = FALSE),
+            selectizeInput(inputId = 'sig_cluster_2',
+                           label = 'Compare to',
+                           choices = c('all other cells'),
+                           selected = NULL,
+                           multiple = FALSE)
         )
     ),
 
@@ -88,6 +100,10 @@ shinyUI(fluidPage(
                         title = 'co-expression',
                         verbatimTextOutput('coefficient'),
                         plotOutput('plot_gene_expr2')
+                    ),
+                    tabPanel(
+                        title = 'signature',
+                        DT::dataTableOutput('table_sig_gene')
                     )
         )
 
