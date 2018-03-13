@@ -331,33 +331,44 @@ shinyServer(function(input, output, session) {
     output$table_sig_gene <- DT::renderDataTable({
         if (input$sig_cluster_1 != '(none)' &&
             input$sig_cluster_1 != input$sig_cluster_2) {
-            res_name = paste0('res.', input$resolution)
-            cell_1 = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] == input$sig_cluster_1]
-            if (input$sig_cluster_2 == 'all other cells') {
-                output_df = FindMarkers(dataset_info$rdat,
-                                        ident.1 = cell_1,
-                                        ident.2 = NULL,
-                                        test.use = 'roc',
-                                        min.pct = 0.25,
-                                        only.pos = TRUE
-                                        )
-            } else {
-                cell_2 = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] == input$sig_cluster_2]
-                output_df = FindMarkers(dataset_info$rdat,
-                                        ident.1 = cell_1,
-                                        ident.2 = cell_2,
-                                        test.use = 'roc',
-                                        min.pct = 0.25,
-                                        only.pos = TRUE
-                                        )
-            }
 
-            output_df %>%
-                rownames_to_column(var = 'gene') %>%
-                as_data_frame() %>%
-                dplyr::select(-p_val_adj) %>%
-                dplyr::filter(myAUC >= 0.7) %>%
-                arrange(desc(myAUC))
+            withProgress(message = 'Find marker gene',
+                         detail = 'collect cell id in cluster',
+                         value = 0, {
+                res_name = paste0('res.', input$resolution)
+                cell_1 = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] == input$sig_cluster_1]
+
+                incProgress(amount = 0.2, message = 'run program')
+                if (input$sig_cluster_2 == 'all other cells') {
+                    output_df = FindMarkers(dataset_info$rdat,
+                                            ident.1 = cell_1,
+                                            ident.2 = NULL,
+                                            test.use = 'roc',
+                                            min.pct = 0.25,
+                                            only.pos = TRUE
+                    )
+                } else {
+                    cell_2 = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] == input$sig_cluster_2]
+                    output_df = FindMarkers(dataset_info$rdat,
+                                            ident.1 = cell_1,
+                                            ident.2 = cell_2,
+                                            test.use = 'roc',
+                                            min.pct = 0.25,
+                                            only.pos = TRUE
+                    )
+                }
+
+                incProgress(amount = 0.7, message = 'create output dataframe')
+                output_df %<>%
+                    rownames_to_column(var = 'gene') %>%
+                    as_data_frame() %>%
+                    dplyr::select(-p_val_adj) %>%
+                    dplyr::filter(myAUC >= 0.7) %>%
+                    arrange(desc(myAUC))
+
+                setProgress(value = 1, message = 'Finish!')
+            })
+            output_df
         }
     })
 })
