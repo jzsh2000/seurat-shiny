@@ -51,6 +51,15 @@ shinyServer(function(input, output, session) {
             dataset_info$species = NULL
             dataset_info$rdat = NULL
             dataset_info$rdat_tsne = NULL
+
+            updateSelectizeInput(session,
+                                 inputId = 'sig_cluster_1',,
+                                 choices = '(none)',
+                                 selected = '(none)')
+            updateSelectizeInput(session,
+                                 inputId = 'sig_cluster_2',,
+                                 choices = 'all other cells',
+                                 selected = 'all other cells')
         } else {
             withProgress(message = 'Load seurat object',
                          detail = 'Locate RDS file path',
@@ -111,9 +120,11 @@ shinyServer(function(input, output, session) {
                              choices = res_choices,
                              selected = '0')
         updateSelectizeInput(session, 'sig_cluster_1',
-                             choices = c('(none)', res_choices))
+                             choices = c('(none)', res_choices),
+                             selected = '(none)')
         updateSelectizeInput(session, 'sig_cluster_2',
-                             choices = c('all other cells', res_choices))
+                             choices = c('all other cells', res_choices),
+                             selected = 'all other cells')
     })
 
     get_input_gene <- reactive({
@@ -328,48 +339,63 @@ shinyServer(function(input, output, session) {
         paste('Pearson correlation coeffient:', shared_data$cor)
     })
 
-    output$table_sig_gene <- DT::renderDataTable({
-        if (input$sig_cluster_1 != '(none)' &&
+    get_sig_gene <- reactive({
+        if (input$dataset != 'none' &&
+            input$sig_cluster_1 != '(none)' &&
             input$sig_cluster_1 != input$sig_cluster_2) {
 
             withProgress(message = 'Find marker gene',
                          detail = 'collect cell id in cluster',
                          value = 0, {
-                res_name = paste0('res.', input$resolution)
-                cell_1 = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] == input$sig_cluster_1]
+                             res_name = paste0('res.', input$resolution)
+                             cell_1 = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] == input$sig_cluster_1]
 
-                incProgress(amount = 0.2, message = 'run program')
-                if (input$sig_cluster_2 == 'all other cells') {
-                    output_df = FindMarkers(dataset_info$rdat,
-                                            ident.1 = cell_1,
-                                            ident.2 = NULL,
-                                            test.use = 'roc',
-                                            min.pct = 0.25,
-                                            only.pos = TRUE
-                    )
-                } else {
-                    cell_2 = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] == input$sig_cluster_2]
-                    output_df = FindMarkers(dataset_info$rdat,
-                                            ident.1 = cell_1,
-                                            ident.2 = cell_2,
-                                            test.use = 'roc',
-                                            min.pct = 0.25,
-                                            only.pos = TRUE
-                    )
-                }
+                             incProgress(amount = 0.2, message = 'run program')
+                             if (input$sig_cluster_2 == 'all other cells') {
+                                 output_df = FindMarkers(dataset_info$rdat,
+                                                         ident.1 = cell_1,
+                                                         ident.2 = NULL,
+                                                         test.use = 'roc',
+                                                         min.pct = 0.25,
+                                                         only.pos = TRUE
+                                 )
+                             } else {
+                                 cell_2 = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] == input$sig_cluster_2]
+                                 output_df = FindMarkers(dataset_info$rdat,
+                                                         ident.1 = cell_1,
+                                                         ident.2 = cell_2,
+                                                         test.use = 'roc',
+                                                         min.pct = 0.25,
+                                                         only.pos = TRUE
+                                 )
+                             }
 
-                incProgress(amount = 0.7, message = 'create output dataframe')
-                output_df %<>%
-                    rownames_to_column(var = 'gene') %>%
-                    as_data_frame() %>%
-                    dplyr::select(-p_val_adj) %>%
-                    dplyr::filter(myAUC >= 0.7) %>%
-                    arrange(desc(myAUC))
+                             incProgress(amount = 0.7, message = 'create output dataframe')
+                             output_df %<>%
+                                 rownames_to_column(var = 'gene') %>%
+                                 as_data_frame() %>%
+                                 dplyr::select(-p_val_adj) %>%
+                                 dplyr::filter(myAUC >= 0.7) %>%
+                                 arrange(desc(myAUC))
 
-                setProgress(value = 1, message = 'Finish!')
-            })
+                             setProgress(value = 1, message = 'Finish!')
+                         })
             output_df
+        } else {
+            data_frame()
         }
     })
+
+    output$table_sig_gene <- DT::renderDataTable({
+        get_sig_gene()
+    }, selection = 'single')
+
+    # observe(
+    #     if (!is.null(input$table_sig_gene_row_last_clicked)) {
+    #         gene_name = get_sig_gene()$gene[
+    #             input$table_sig_gene_row_last_clicked]
+    #         updateTextInput(session, "tx_gene", value = gene_name)
+    #     }
+    # )
 })
 
