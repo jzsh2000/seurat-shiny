@@ -51,6 +51,7 @@ shinyServer(function(input, output, session) {
             dataset_info$species = NULL
             dataset_info$rdat = NULL
             dataset_info$rdat_tsne = NULL
+            get_sig_gene$table = data_frame(gene = character())
 
             updateSelectizeInput(session,
                                  inputId = 'sig_cluster_1',,
@@ -103,6 +104,7 @@ shinyServer(function(input, output, session) {
             dataset_info$species = resource$species
             dataset_info$rdat = rdat
             dataset_info$rdat_rsne = rdat_tsne
+            get_sig_gene$table = data_frame(gene = character())
         }
 
         list(species = dataset_info$species,
@@ -339,63 +341,73 @@ shinyServer(function(input, output, session) {
         paste('Pearson correlation coeffient:', shared_data$cor)
     })
 
-    get_sig_gene <- reactive({
-        if (input$dataset != 'none' &&
-            input$sig_cluster_1 != '(none)' &&
+    get_sig_gene <- reactiveValues(table = NULL)
+    find_marker_gene <- function() {
+        withProgress(message = 'Find marker gene',
+                     detail = 'collect cell id in cluster',
+                     value = 0, {
+            res_name = paste0('res.', input$resolution)
+            cell_1 = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] == input$sig_cluster_1]
+
+            incProgress(amount = 0.2, message = 'run program')
+            if (input$sig_cluster_2 == 'all other cells') {
+                output_df = FindMarkers(dataset_info$rdat,
+                                        ident.1 = cell_1,
+                                        ident.2 = NULL,
+                                        test.use = 'roc',
+                                        min.pct = 0.25,
+                                        only.pos = TRUE
+                                        )
+            } else {
+                cell_2 = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] == input$sig_cluster_2]
+                output_df = FindMarkers(dataset_info$rdat,
+                                        ident.1 = cell_1,
+                                        ident.2 = cell_2,
+                                        test.use = 'roc',
+                                        min.pct = 0.25,
+                                        only.pos = TRUE
+                )
+            }
+
+            incProgress(amount = 0.7, message = 'create output dataframe')
+            output_df %<>%
+                rownames_to_column(var = 'gene') %>%
+                as_data_frame() %>%
+                dplyr::select(-p_val_adj) %>%
+                dplyr::filter(myAUC >= 0.7) %>%
+                arrange(desc(myAUC))
+
+            setProgress(value = 1, message = 'Finish!')
+        })
+        output_df
+    }
+
+    get_sig_cluster_input <- reactive({
+        list(cluster1 = input$sig_cluster_1,
+             cluster2 = input$sig_cluster_2)
+    }) %>% debounce(2000)
+
+    observeEvent(get_sig_cluster_input(), {
+        if (input$sig_cluster_1 != '(none)' &&
             input$sig_cluster_1 != input$sig_cluster_2) {
 
-            withProgress(message = 'Find marker gene',
-                         detail = 'collect cell id in cluster',
-                         value = 0, {
-                             res_name = paste0('res.', input$resolution)
-                             cell_1 = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] == input$sig_cluster_1]
-
-                             incProgress(amount = 0.2, message = 'run program')
-                             if (input$sig_cluster_2 == 'all other cells') {
-                                 output_df = FindMarkers(dataset_info$rdat,
-                                                         ident.1 = cell_1,
-                                                         ident.2 = NULL,
-                                                         test.use = 'roc',
-                                                         min.pct = 0.25,
-                                                         only.pos = TRUE
-                                 )
-                             } else {
-                                 cell_2 = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] == input$sig_cluster_2]
-                                 output_df = FindMarkers(dataset_info$rdat,
-                                                         ident.1 = cell_1,
-                                                         ident.2 = cell_2,
-                                                         test.use = 'roc',
-                                                         min.pct = 0.25,
-                                                         only.pos = TRUE
-                                 )
-                             }
-
-                             incProgress(amount = 0.7, message = 'create output dataframe')
-                             output_df %<>%
-                                 rownames_to_column(var = 'gene') %>%
-                                 as_data_frame() %>%
-                                 dplyr::select(-p_val_adj) %>%
-                                 dplyr::filter(myAUC >= 0.7) %>%
-                                 arrange(desc(myAUC))
-
-                             setProgress(value = 1, message = 'Finish!')
-                         })
-            output_df
-        } else {
-            data_frame()
+            get_sig_gene$table = find_marker_gene()
         }
     })
 
     output$table_sig_gene <- DT::renderDataTable({
-        get_sig_gene()
+        get_sig_gene$table
     }, selection = 'single')
 
-    # observe(
-    #     if (!is.null(input$table_sig_gene_row_last_clicked)) {
-    #         gene_name = get_sig_gene()$gene[
-    #             input$table_sig_gene_row_last_clicked]
-    #         updateTextInput(session, "tx_gene", value = gene_name)
-    #     }
-    # )
+    observe(
+        if (!is.null(input$table_sig_gene_row_last_clicked)) {
+            gene_name = get_sig_gene$table$gene[
+                input$table_sig_gene_row_last_clicked]
+
+            if (!is.na(gene_name)) {
+                updateTextInput(session, "tx_gene", value = gene_name)
+            }
+        }
+    )
 })
 
