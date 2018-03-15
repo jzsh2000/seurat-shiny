@@ -1,0 +1,122 @@
+---
+title: "Seurat analysis example"
+output: html_notebook
+---
+
+```{r}
+library(Seurat)
+library(tidyverse)
+library(glue)
+library(magrittr)
+library(Matrix)
+library(DT)
+
+library(here)
+library(withr)
+```
+
+```{r}
+foobar_metrics_summary <- read_csv(file.path(here(), 'foobar/outs/metrics_summary.csv'))
+
+DT::datatable(foobar_metrics_summary[,c(1:2)], rownames = FALSE,
+              options = list(dom = 't'))
+```
+
+```{r}
+foobar_data <- Read10X(data.dir = file.path(here(), 'foobar/outs/filtered_gene_bc_matrices/GRCh38/'))
+foobar <- CreateSeuratObject(
+    raw.data = foobar_data,
+    project = 'foobar',
+    min.cells = 3,
+    min.genes = 200
+    )
+```
+
+```{r}
+foobar_mito_genes <- grep(pattern = "^MT-", x = rownames(x = foobar@data), value = TRUE)
+percent_mito <- Matrix::colSums(foobar@raw.data[foobar_mito_genes, ])/Matrix::colSums(foobar@raw.data)
+foobar <- AddMetaData(object = foobar,
+                   metadata = percent_mito,
+                   col.name = 'percent.mito')
+```
+     
+```{r violin-plot}
+VlnPlot(object = foobar,
+        features.plot = c('nGene', 'nUMI', 'percent.mito'),
+        point.size.use = 0,
+        nCol = 3)
+```
+
+```{r}
+foobar <- FilterCells(object = foobar,
+                  subset.names = c('nGene', 'percent.mito'),
+                  low.thresholds = c(-Inf, -Inf),
+                  high.thresholds = c(5000, 0.1))
+```
+
+```{r}
+foobar <- NormalizeData(object = foobar)
+```
+
+```{r}
+foobar <- FindVariableGenes(object = foobar,
+                        x.low.cutoff = 0.0125,
+                        x.high.cutoff = 3,
+                        y.cutoff = 0.5)
+```
+```{r}
+length(foobar@var.genes)
+```
+
+```{r}
+foobar <- ScaleData(object = foobar,
+                vars.to.regress = c('nUMI', 'percent.mito'))
+```
+
+```{r}
+foobar <- RunPCA(object = foobar, pc.genes = foobar@var.genes, pcs.compute = 40,
+             do.print = FALSE)
+```
+
+```{r}
+PCElbowPlot(object = foobar, num.pc = 30)
+```
+
+```{r}
+foobar <- FindClusters(object = foobar,
+                   dims.use = 1:15,
+                   print.output = FALSE,
+                   save.SNN = TRUE)
+```
+
+```{r}
+foobar <- FindClusters(object = foobar,
+                   dims.use = 1:15,
+                   print.output = FALSE,
+                   resolution = 0.6)
+```
+
+```{r}
+foobar <- FindClusters(object = foobar,
+                   dims.use = 1:15,
+                   print.output = FALSE,
+                   resolution = 0.5)
+```
+
+```{r}
+foobar <- FindClusters(object = foobar,
+                   dims.use = 1:15,
+                   print.output = FALSE,
+                   resolution = 0.3)
+```
+
+
+```{r}
+foobar <- RunTSNE(object = foobar,
+              dims.use = 1:15,
+              do.fast = TRUE)
+```
+
+```{r}
+write_rds(foobar, file = file.path(here(), 'robj/foobar.rds'))
+```
