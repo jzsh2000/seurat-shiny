@@ -12,7 +12,6 @@
 library(shiny)
 library(shinyjs)
 library(tidyverse)
-library(here)
 
 if (file.exists('config.txt')) {
     source('config.txt')
