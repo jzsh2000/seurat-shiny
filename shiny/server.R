@@ -103,7 +103,7 @@ shinyServer(function(input, output, session) {
 
             dataset_info$species = resource$species
             dataset_info$rdat = rdat
-            dataset_info$rdat_rsne = rdat_tsne
+            dataset_info$rdat_tsne = rdat_tsne
             get_sig_gene$table = data_frame(gene = character())
         }
 
