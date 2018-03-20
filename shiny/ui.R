@@ -22,6 +22,8 @@ resource_list <- read_csv('data/resource_list.csv',
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
 
+  tags$head(tags$link(rel = "shortcut icon", href = "dc.ico")),
+
   # Application title
   titlePanel(ifelse(exists('app_title'), app_title, "single-cell RNA-seq data visualization")),
 
