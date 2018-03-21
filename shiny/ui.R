@@ -48,9 +48,10 @@ shinyUI(fluidPage(
                           value = FALSE)
         ),
         disabled(
-            selectizeInput(inputId = 'resolution',
-                           label = 'Cluster resolution',
-                           choices = c())
+            sliderInput(inputId = 'resolution',
+                        label = 'Cluster resolution',
+                        min = 0.1, max = 1.5, value = 0.8,
+                        step = 0.1)
         ),
         conditionalPanel(
             'input.tabset_main == "gene expression"',
