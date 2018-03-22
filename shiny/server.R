@@ -50,16 +50,18 @@ shinyServer(function(input, output, session) {
         res_name = paste0('res.', resolution)
         if (!is.null(dataset_info$rdat) &&
             !(res_name %in% colnames(dataset_info$rdat@meta.data))) {
+            print('update resolution...')
             dataset_info$rdat = FindClusters(
                 object = dataset_info$rdat,
                 dims.use = 1:15,
                 print.output = FALSE,
                 resolution = input$resolution
             )
+            print('done...')
         }
     }
 
-    get_dataset <- reactive({
+    observeEvent(input$dataset, {
         if (input$dataset == 'none') {
             dataset_info$species = NULL
             dataset_info$rdat = NULL
@@ -116,15 +118,10 @@ shinyServer(function(input, output, session) {
             dataset_info$rdat_tsne = rdat_tsne
             get_sig_gene$table = data_frame(gene = character())
         }
-
-        list(species = dataset_info$species,
-             rdat = dataset_info$rdat,
-             rdat_tsne = dataset_info$rdat_tsne
-        )
-    }) %>% debounce(1000)
+    })
 
     observe(if (!is.null(input$resolution) &&
-                !is.null(get_dataset()$rdat)) {
+                !is.null(dataset_info$rdat)) {
         res_name = paste0('res.', input$resolution)
         update_resolution(input$resolution)
         res_choices = as.character(sort(as.integer(unique(dataset_info$rdat@meta.data[[res_name]]))))
@@ -260,7 +257,9 @@ shinyServer(function(input, output, session) {
     })
 
     output$plot_gene_expr <- renderPlot({
+        res_name = paste0('res.', input$resolution)
         update_resolution(input$resolution)
+
         if (!is.null(dataset_info$rdat)) {
             if (get_input_gene() != '' &&
                 (get_input_gene() %in% rownames(dataset_info$rdat@data))) {
