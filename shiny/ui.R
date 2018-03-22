@@ -82,12 +82,12 @@ shinyUI(fluidPage(
             selectizeInput(inputId = 'sig_cluster_1',
                            label = 'Use cluster',
                            choices = '(none)',
-                           multiple = FALSE),
+                           multiple = TRUE),
             selectizeInput(inputId = 'sig_cluster_2',
                            label = 'Compare to',
                            choices = c('all other cells'),
                            selected = NULL,
-                           multiple = FALSE)
+                           multiple = TRUE)
         )
     ),
 

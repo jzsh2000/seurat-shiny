@@ -46,6 +46,19 @@ shinyServer(function(input, output, session) {
         rdat_tsne = NULL
     )
 
+    update_resolution <- function(resolution) {
+        res_name = paste0('res.', resolution)
+        if (!is.null(dataset_info$rdat) &&
+            !(res_name %in% colnames(dataset_info$rdat@meta.data))) {
+            dataset_info$rdat = FindClusters(
+                object = dataset_info$rdat,
+                dims.use = 1:15,
+                print.output = FALSE,
+                resolution = input$resolution
+            )
+        }
+    }
+
     get_dataset <- reactive({
         if (input$dataset == 'none') {
             dataset_info$species = NULL
@@ -79,21 +92,18 @@ shinyServer(function(input, output, session) {
 
                              incProgress(0.2, message = 'Get resolution list')
 
-                             resolution_list = str_subset(colnames(rdat@meta.data), '^res\\.') %>%
-                                 str_extract('(?<=res.).*') %>%
-                                 as.numeric() %>%
-                                 sort() %>%
-                                 as.character()
+                             # resolution_list = str_subset(colnames(rdat@meta.data), '^res\\.') %>%
+                             #     str_extract('(?<=res.).*') %>%
+                             #     as.numeric() %>%
+                             #     sort() %>%
+                             #     as.character()
 
-                             default_resolution = as.character(resource$default_resolution)
+                             default_resolution = round(resource$default_resolution, digits = 1)
                              if (!is.na(default_resolution) &&
-                                 default_resolution %in% resolution_list) {
-                                 updateSelectizeInput(session, 'resolution',
-                                                      choices = resolution_list,
-                                                      selected = default_resolution)
-                             } else {
-                                 updateSelectizeInput(session, 'resolution',
-                                                      choices = resolution_list)
+                                 default_resolution >= 0.1 &&
+                                 default_resolution <= 1.5) {
+                                 updateSliderInput(session, 'resolution',
+                                                   value = default_resolution)
                              }
 
                              enable('resolution')
@@ -116,7 +126,8 @@ shinyServer(function(input, output, session) {
     observe(if (!is.null(input$resolution) &&
                 !is.null(get_dataset()$rdat)) {
         res_name = paste0('res.', input$resolution)
-        res_choices = as.character(sort(as.integer(unique(get_dataset()$rdat@meta.data[[res_name]]))))
+        update_resolution(input$resolution)
+        res_choices = as.character(sort(as.integer(unique(dataset_info$rdat@meta.data[[res_name]]))))
 
         updateSelectizeInput(session, 'cluster_id',
                              choices = res_choices,
@@ -132,16 +143,16 @@ shinyServer(function(input, output, session) {
     get_input_gene <- reactive({
         input_gene = ''
 
-        if (!is.null(get_dataset()$species)) {
-            if (input$tx_gene %in% rownames(get_dataset()$rdat@data)) {
+        if (!is.null(dataset_info$species)) {
+            if (input$tx_gene %in% rownames(dataset_info$rdat@data)) {
                 input_gene = input$tx_gene
             } else {
-                input_gene = gene_name_std(input$tx_gene, get_dataset()$species)
+                input_gene = gene_name_std(input$tx_gene, dataset_info$species)
             }
         }
 
         if (input_gene != '' &&
-            (input_gene %in% rownames(get_dataset()$rdat@data))) {
+            (input_gene %in% rownames(dataset_info$rdat@data))) {
             input_gene
         } else {
             ''
@@ -151,16 +162,16 @@ shinyServer(function(input, output, session) {
     get_input_gene1 <- reactive({
         input_gene = ''
 
-        if (!is.null(get_dataset()$species)) {
-            if (input$tx_gene1 %in% rownames(get_dataset()$rdat@data)) {
+        if (!is.null(dataset_info$species)) {
+            if (input$tx_gene1 %in% rownames(dataset_info$rdat@data)) {
                 input_gene = input$tx_gene1
             } else {
-                input_gene = gene_name_std(input$tx_gene1, get_dataset()$species)
+                input_gene = gene_name_std(input$tx_gene1, dataset_info$species)
             }
         }
 
         if (input_gene != '' &&
-            (input_gene %in% rownames(get_dataset()$rdat@data))) {
+            (input_gene %in% rownames(dataset_info$rdat@data))) {
             input_gene
         } else {
             ''
@@ -170,16 +181,16 @@ shinyServer(function(input, output, session) {
     get_input_gene2 <- reactive({
         input_gene = ''
 
-        if (!is.null(get_dataset()$species)) {
-            if (input$tx_gene2 %in% rownames(get_dataset()$rdat@data)) {
+        if (!is.null(dataset_info$species)) {
+            if (input$tx_gene2 %in% rownames(dataset_info$rdat@data)) {
                 input_gene = input$tx_gene2
             } else {
-                input_gene = gene_name_std(input$tx_gene2, get_dataset()$species)
+                input_gene = gene_name_std(input$tx_gene2, dataset_info$species)
             }
         }
 
         if (input_gene != '' &&
-            (input_gene %in% rownames(get_dataset()$rdat@data))) {
+            (input_gene %in% rownames(dataset_info$rdat@data))) {
             input_gene
         } else {
             ''
@@ -188,8 +199,8 @@ shinyServer(function(input, output, session) {
 
     get_cluster_dat_cellranger <- reactive({
         res_name = paste0('res.', input$resolution)
-        cluster_dat <- get_dataset()$rdat_tsne %>%
-            left_join(get_dataset()$rdat@meta.data %>%
+        cluster_dat <- dataset_info$rdat_tsne %>%
+            left_join(dataset_info$rdat@meta.data %>%
                            rownames_to_column('Barcode') %>%
                            as_data_frame() %>%
                            dplyr::select(Barcode, one_of(res_name)),
@@ -200,13 +211,13 @@ shinyServer(function(input, output, session) {
 
     get_cluster_dat_seurat <- reactive({
         res_name = paste0('res.', input$resolution)
-        cluster_dat <- GetDimReduction(get_dataset()$rdat,
+        cluster_dat <- GetDimReduction(dataset_info$rdat,
                                        reduction.type = 'tsne',
                                        slot = 'cell.embeddings') %>%
             as.data.frame() %>%
             rownames_to_column(var = 'Barcode') %>%
             as_data_frame() %>%
-            inner_join(get_dataset()$rdat@meta.data %>%
+            inner_join(dataset_info$rdat@meta.data %>%
                            rownames_to_column('Barcode') %>%
                            as_data_frame() %>%
                            dplyr::select(Barcode, one_of(res_name)),
@@ -216,7 +227,7 @@ shinyServer(function(input, output, session) {
     })
 
     get_tsne_plot <- reactive({
-        res_name = paste0('res.', input$resolution)
+        update_resolution(input$resolution)
         label_column = 'cluster'
         if (input$cb_showsize) {
             label_column = 'cluster_with_size'
@@ -249,10 +260,10 @@ shinyServer(function(input, output, session) {
     })
 
     output$plot_gene_expr <- renderPlot({
-        res_name = paste0('res.', input$resolution)
-        if (!is.null(get_dataset()$rdat)) {
+        update_resolution(input$resolution)
+        if (!is.null(dataset_info$rdat)) {
             if (get_input_gene() != '' &&
-                (get_input_gene() %in% rownames(get_dataset()$rdat@data))) {
+                (get_input_gene() %in% rownames(dataset_info$rdat@data))) {
 
                 plot_1 <- get_tsne_plot()
                 if (input$cb_cellranger) {
@@ -263,7 +274,7 @@ shinyServer(function(input, output, session) {
 
                 plot_dat  %<>%
                     inner_join(
-                        enframe(get_dataset()$rdat@data[get_input_gene(),], name = 'Barcode', value = 'expr'),
+                        enframe(dataset_info$rdat@data[get_input_gene(),], name = 'Barcode', value = 'expr'),
                         by = 'Barcode'
                     )
 
@@ -282,7 +293,7 @@ shinyServer(function(input, output, session) {
                           panel.grid.minor = element_blank(),
                           legend.position = "none")
 
-                plot_3 <- Seurat::VlnPlot(get_dataset()$rdat,
+                plot_3 <- Seurat::VlnPlot(dataset_info$rdat,
                                           group.by = res_name,
                                           features.plot = get_input_gene(),
                                           do.return = TRUE)
@@ -303,18 +314,18 @@ shinyServer(function(input, output, session) {
 
     output$plot_gene_expr2 <- renderPlot({
         res_name = paste0('res.', input$resolution)
-        if (!is.null(get_dataset()$rdat) &&
+        if (!is.null(dataset_info$rdat) &&
             get_input_gene1() != '' &&
-            (get_input_gene1() %in% rownames(get_dataset()$rdat@data)) &&
+            (get_input_gene1() %in% rownames(dataset_info$rdat@data)) &&
             get_input_gene2() != '' &&
-            (get_input_gene2() %in% rownames(get_dataset()$rdat@data)) &&
+            (get_input_gene2() %in% rownames(dataset_info$rdat@data)) &&
             get_input_gene1() != get_input_gene2()) {
 
-            valid_cells = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] %in% input$cluster_id]
+            valid_cells = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] %in% input$cluster_id]
 
             plot_dat <- inner_join(
-                enframe(get_dataset()$rdat@data[get_input_gene1(),], name = 'Barcode', value = get_input_gene1()),
-                enframe(get_dataset()$rdat@data[get_input_gene2(),], name = 'Barcode', value = get_input_gene2()),
+                enframe(dataset_info$rdat@data[get_input_gene1(),], name = 'Barcode', value = get_input_gene1()),
+                enframe(dataset_info$rdat@data[get_input_gene2(),], name = 'Barcode', value = get_input_gene2()),
                 by = 'Barcode'
             ) %>%
                 filter(Barcode %in% valid_cells)
@@ -347,10 +358,10 @@ shinyServer(function(input, output, session) {
                      detail = 'collect cell id in cluster',
                      value = 0, {
             res_name = paste0('res.', input$resolution)
-            cell_1 = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] == input$sig_cluster_1]
+            cell_1 = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] %in% input$sig_cluster_1]
 
             incProgress(amount = 0.2, message = 'run program')
-            if (input$sig_cluster_2 == 'all other cells') {
+            if (input$sig_cluster_2[1] == 'all other cells') {
                 output_df = FindMarkers(dataset_info$rdat,
                                         ident.1 = cell_1,
                                         ident.2 = NULL,
@@ -359,7 +370,7 @@ shinyServer(function(input, output, session) {
                                         only.pos = TRUE
                                         )
             } else {
-                cell_2 = rownames(get_dataset()$rdat@meta.data)[get_dataset()$rdat@meta.data[[res_name]] == input$sig_cluster_2]
+                cell_2 = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] %in% input$sig_cluster_2]
                 output_df = FindMarkers(dataset_info$rdat,
                                         ident.1 = cell_1,
                                         ident.2 = cell_2,
@@ -388,8 +399,10 @@ shinyServer(function(input, output, session) {
     }) %>% debounce(2000)
 
     observeEvent(get_sig_cluster_input(), {
-        if (input$sig_cluster_1 != '(none)' &&
-            input$sig_cluster_1 != input$sig_cluster_2) {
+        if (length(input$sig_cluster_1) > 0 &&
+            length(input$sig_cluster_2) > 0 &&
+            input$sig_cluster_1[1] != '(none)' &&
+            length(intersect(input$sig_cluster_1, input$sig_cluster_2)) == 0) {
 
             get_sig_gene$table = find_marker_gene()
         }
