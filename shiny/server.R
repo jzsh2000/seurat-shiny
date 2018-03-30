@@ -47,6 +47,10 @@ shinyServer(function(input, output, session) {
     )
 
     get_sig_gene <- reactiveValues(table = NULL)
+    shared_data <- reactiveValues(cor = NULL)
+    get_resolution <- reactive({
+        return(input$resolution)
+    }) %>% debounce(1500)
 
     update_resolution <- function(resolution) {
         res_name = paste0('res.', resolution)
@@ -57,7 +61,7 @@ shinyServer(function(input, output, session) {
                 object = dataset_info$rdat,
                 dims.use = 1:15,
                 print.output = FALSE,
-                resolution = input$resolution
+                resolution = get_resolution()
             )
             print('done...')
         }
@@ -122,10 +126,10 @@ shinyServer(function(input, output, session) {
         }
     })
 
-    observe(if (!is.null(input$resolution) &&
+    observe(if (!is.null(get_resolution()) &&
                 !is.null(dataset_info$rdat)) {
-        res_name = paste0('res.', input$resolution)
-        update_resolution(input$resolution)
+        res_name = paste0('res.', get_resolution())
+        update_resolution(get_resolution())
         res_choices = as.character(sort(as.integer(unique(dataset_info$rdat@meta.data[[res_name]]))))
 
         updateSelectizeInput(session, 'cluster_id',
@@ -197,7 +201,7 @@ shinyServer(function(input, output, session) {
     }) %>% debounce(1500)
 
     get_cluster_dat_cellranger <- reactive({
-        res_name = paste0('res.', input$resolution)
+        res_name = paste0('res.', get_resolution())
         cluster_dat <- dataset_info$rdat_tsne %>%
             left_join(dataset_info$rdat@meta.data %>%
                            rownames_to_column('Barcode') %>%
@@ -209,7 +213,7 @@ shinyServer(function(input, output, session) {
     })
 
     get_cluster_dat_seurat <- reactive({
-        res_name = paste0('res.', input$resolution)
+        res_name = paste0('res.', get_resolution())
         cluster_dat <- GetDimReduction(dataset_info$rdat,
                                        reduction.type = 'tsne',
                                        slot = 'cell.embeddings') %>%
@@ -226,7 +230,7 @@ shinyServer(function(input, output, session) {
     })
 
     get_tsne_plot <- reactive({
-        update_resolution(input$resolution)
+        update_resolution(get_resolution())
         label_column = 'cluster'
         if (input$cb_showsize) {
             label_column = 'cluster_with_size'
@@ -259,8 +263,8 @@ shinyServer(function(input, output, session) {
     })
 
     output$plot_gene_expr <- renderPlot({
-        res_name = paste0('res.', input$resolution)
-        update_resolution(input$resolution)
+        res_name = paste0('res.', get_resolution())
+        update_resolution(get_resolution())
 
         if (!is.null(dataset_info$rdat)) {
             if (get_input_gene() != '' &&
@@ -311,10 +315,8 @@ shinyServer(function(input, output, session) {
     # }, width = 800, height = 600)
     }, height = plot_height_func(0.7))
 
-    shared_data <- reactiveValues(cor = NULL)
-
     output$plot_gene_expr2 <- renderPlot({
-        res_name = paste0('res.', input$resolution)
+        res_name = paste0('res.', get_resolution())
         if (!is.null(dataset_info$rdat) &&
             get_input_gene1() != '' &&
             (get_input_gene1() %in% rownames(dataset_info$rdat@data)) &&
@@ -357,7 +359,7 @@ shinyServer(function(input, output, session) {
         withProgress(message = 'Find marker gene',
                      detail = 'collect cell id in cluster',
                      value = 0, {
-            res_name = paste0('res.', input$resolution)
+            res_name = paste0('res.', get_resolution())
             cell_1 = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] %in% input$sig_cluster_1]
 
             incProgress(amount = 0.2, message = 'run program')
