@@ -46,6 +46,8 @@ shinyServer(function(input, output, session) {
         rdat_tsne = NULL
     )
 
+    get_sig_gene <- reactiveValues(table = NULL)
+
     update_resolution <- function(resolution) {
         res_name = paste0('res.', resolution)
         if (!is.null(dataset_info$rdat) &&
@@ -70,12 +72,12 @@ shinyServer(function(input, output, session) {
 
             updateSelectizeInput(session,
                                  inputId = 'sig_cluster_1',,
-                                 choices = '(none)',
-                                 selected = '(none)')
+                                 choices = NULL,
+                                 selected = NULL)
             updateSelectizeInput(session,
                                  inputId = 'sig_cluster_2',,
-                                 choices = 'all other cells',
-                                 selected = 'all other cells')
+                                 choices = NULL,
+                                 selected = NULL)
         } else {
             withProgress(message = 'Load seurat object',
                          detail = 'Locate RDS file path',
@@ -130,11 +132,11 @@ shinyServer(function(input, output, session) {
                              choices = res_choices,
                              selected = '0')
         updateSelectizeInput(session, 'sig_cluster_1',
-                             choices = c('(none)', res_choices),
-                             selected = '(none)')
+                             choices = res_choices,
+                             selected = NULL)
         updateSelectizeInput(session, 'sig_cluster_2',
-                             choices = c('all other cells', res_choices),
-                             selected = 'all other cells')
+                             choices = res_choices,
+                             selected = NULL)
     })
 
     get_input_gene <- reactive({
@@ -351,7 +353,6 @@ shinyServer(function(input, output, session) {
         paste('Pearson correlation coeffient:', shared_data$cor)
     })
 
-    get_sig_gene <- reactiveValues(table = NULL)
     find_marker_gene <- function() {
         withProgress(message = 'Find marker gene',
                      detail = 'collect cell id in cluster',
@@ -360,7 +361,7 @@ shinyServer(function(input, output, session) {
             cell_1 = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] %in% input$sig_cluster_1]
 
             incProgress(amount = 0.2, message = 'run program')
-            if (input$sig_cluster_2[1] == 'all other cells') {
+            if (length(input$sig_cluster_2) == 0) {
                 output_df = FindMarkers(dataset_info$rdat,
                                         ident.1 = cell_1,
                                         ident.2 = NULL,
@@ -399,8 +400,6 @@ shinyServer(function(input, output, session) {
 
     observeEvent(get_sig_cluster_input(), {
         if (length(input$sig_cluster_1) > 0 &&
-            length(input$sig_cluster_2) > 0 &&
-            input$sig_cluster_1[1] != '(none)' &&
             length(intersect(input$sig_cluster_1, input$sig_cluster_2)) == 0) {
 
             get_sig_gene$table = find_marker_gene()
