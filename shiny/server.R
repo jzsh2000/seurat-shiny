@@ -57,13 +57,19 @@ shinyServer(function(input, output, session) {
         if (!is.null(dataset_info$rdat) &&
             !(res_name %in% colnames(dataset_info$rdat@meta.data))) {
             print('update resolution...')
-            dataset_info$rdat = FindClusters(
-                object = dataset_info$rdat,
-                dims.use = 1:15,
-                print.output = FALSE,
-                resolution = get_resolution()
+            withProgress(
+                message = 'Find clusters using new reolution',
+                detail = 'This may take a while...',
+                value = 0, {
+                    dataset_info$rdat = FindClusters(
+                        object = dataset_info$rdat,
+                        dims.use = 1:15,
+                        print.output = FALSE,
+                        resolution = get_resolution()
+                    )
+                    setProgress(value = 1)
+                }
             )
-            print('done...')
         }
     }
 
