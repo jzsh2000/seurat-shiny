@@ -370,22 +370,43 @@ shinyServer(function(input, output, session) {
 
             incProgress(amount = 0.2, message = 'run program')
             if (length(input$sig_cluster_2) == 0) {
-                output_df = FindMarkers(dataset_info$rdat,
-                                        ident.1 = cell_1,
-                                        ident.2 = NULL,
-                                        test.use = 'roc',
-                                        min.pct = 0.25,
-                                        only.pos = TRUE
-                                        )
+                if (input$marker_pos == 'pos') {
+                    output_df = FindMarkers(dataset_info$rdat,
+                                            ident.1 = cell_1,
+                                            ident.2 = NULL,
+                                            test.use = 'roc',
+                                            min.pct = 0.25,
+                                            only.pos = TRUE
+                    )
+                } else {
+                    output_df = FindMarkers(dataset_info$rdat,
+                                            ident.1 = cell_1,
+                                            ident.2 = NULL,
+                                            test.use = 'roc',
+                                            min.pct = 0.25,
+                                            only.pos = FALSE
+                    )
+                    output_df = subset(output_df, avg_diff < 0)
+                }
             } else {
                 cell_2 = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] %in% input$sig_cluster_2]
-                output_df = FindMarkers(dataset_info$rdat,
-                                        ident.1 = cell_1,
-                                        ident.2 = cell_2,
-                                        test.use = 'roc',
-                                        min.pct = 0.25,
-                                        only.pos = TRUE
-                )
+                if (input$marker_pos == 'pos') {
+                    output_df = FindMarkers(dataset_info$rdat,
+                                            ident.1 = cell_1,
+                                            ident.2 = cell_2,
+                                            test.use = 'roc',
+                                            min.pct = 0.25,
+                                            only.pos = TRUE
+                                            )
+                } else {
+                    output_df = FindMarkers(dataset_info$rdat,
+                                            ident.1 = cell_2,
+                                            ident.2 = cell_1,
+                                            test.use = 'roc',
+                                            min.pct = 0.25,
+                                            only.pos = TRUE
+                    )
+                }
             }
 
             incProgress(amount = 0.7, message = 'create output dataframe')
@@ -406,7 +427,10 @@ shinyServer(function(input, output, session) {
              cluster2 = input$sig_cluster_2)
     }) %>% debounce(2000)
 
-    observeEvent(get_sig_cluster_input(), {
+    observeEvent({
+        get_sig_cluster_input()
+        input$marker_pos
+        }, {
         if (length(input$sig_cluster_1) > 0 &&
             length(intersect(input$sig_cluster_1, input$sig_cluster_2)) == 0) {
 

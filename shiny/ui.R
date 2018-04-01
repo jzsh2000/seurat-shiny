@@ -87,7 +87,12 @@ shinyUI(fluidPage(
                            label = 'Compare to',
                            choices = c('all other cells'),
                            selected = NULL,
-                           multiple = TRUE)
+                           multiple = TRUE),
+            radioButtons(inputId = 'marker_pos',
+                         label = 'Find markers',
+                         inline = TRUE,
+                         choices = c('positive' = 'pos',
+                                     'negative' = 'neg'))
         )
     ),
 
