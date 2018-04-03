@@ -35,29 +35,25 @@ shinyUI(fluidPage(
                        choices = c('(none)' = 'none',
                                    deframe(resource_list[,c('description',
                                                             'label')]))),
-        checkboxInput(inputId = 'cb_cellranger',
-                      label = 'Use original t-SNE',
-                      value = FALSE),
-        conditionalPanel(
-            'input.tabset_main == "gene expression"',
-            # checkboxInput(inputId = 'cb_label',
-            #               label = 'Label cluster center',
-            #               value = TRUE),
-            checkboxInput(inputId = 'cb_showsize',
-                          label = 'Show cluster size',
-                          value = FALSE)
-        ),
         disabled(
             sliderInput(inputId = 'resolution',
                         label = 'Cluster resolution',
                         min = 0.1, max = 1.5, value = 0.8,
                         step = 0.1)
         ),
+        hr(),
         conditionalPanel(
             'input.tabset_main == "gene expression"',
             # checkboxInput(inputId = 'cb_label',
             #               label = 'Label cluster center',
             #               value = TRUE),
+            #
+            checkboxInput(inputId = 'cb_cellranger',
+                          label = 'Use original t-SNE',
+                          value = FALSE),
+            checkboxInput(inputId = 'cb_showsize',
+                          label = 'Show cluster size',
+                          value = FALSE),
             textInput(inputId = 'tx_gene',
                       label = 'Gene name',
                       placeholder = 'Your awesome gene')
