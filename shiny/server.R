@@ -14,9 +14,12 @@ library(magrittr)
 library(Seurat)
 library(DT)
 library(cowplot)
+library(glue)
 
 resource_list <- read_csv('data/resource_list.csv',
                           col_types = 'ccccd')
+gene_human <- read_csv('gene/gene-human.csv', col_types = 'cc')
+gene_mouse <- read_csv('gene/gene-mouse.csv', col_types = 'cc')
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
@@ -27,17 +30,57 @@ shinyServer(function(input, output, session) {
     }
 
     # get standard gene name
-    gene_name_std <- function(gene_name, species = 'human') {
-        if (species == 'human') {
-            input_gene = c(limma::alias2Symbol(stringr::str_to_upper(gene_name),
-                                               species = 'Hs'), '')[1]
-        } else if (species == 'mouse') {
-            input_gene = c(limma::alias2Symbol(stringr::str_to_title(gene_name),
-                                               species = 'Mm'), '')[1]
+    gene_name_std <- function(gene_name, species = 'human', valid_names = NULL) {
+        if (!is.null(valid_names) && (gene_name %in% valid_names)) {
+            input_gene = gene_name
         } else {
+            if (species == 'human') {
+                input_gene = c(limma::alias2Symbol(stringr::str_to_upper(gene_name),
+                                                   species = 'Hs'), '')[1]
+            } else if (species == 'mouse') {
+                input_gene = c(limma::alias2Symbol(stringr::str_to_title(gene_name),
+                                                   species = 'Mm'), '')[1]
+            } else {
+                input_gene = ''
+            }
+        }
+
+        if (!is.null(valid_names) && (!(input_gene %in% valid_names))) {
             input_gene = ''
         }
         input_gene
+    }
+
+    # create title for violin plot
+    gene_name_title <- function(gene_name, species = 'human') {
+        shorten_alias <- function(string) {
+            alias_full = str_split(string, pattern = '\\|')[[1]]
+            if (length(alias_full) > 5) {
+                return(paste(alias_full[1:5], collapse = '|'))
+            } else {
+                return(string)
+            }
+        }
+        if (species == 'human') {
+            if (gene_name %in% gene_human$gene) {
+                gene_idx = which(gene_name == gene_human$gene)[1]
+                gene_alias = shorten_alias(gene_human$alias[gene_idx])
+                glue::glue('{gene_name} ({gene_alias})')
+            } else {
+                gene_name
+            }
+        } else if (species == 'mouse') {
+            if (gene_name %in% gene_mouse$gene) {
+                gene_idx = which(gene_name == gene_mouse$gene)[1]
+                gene_alias = shorten_alias(gene_mouse$alias[gene_idx])
+                # print(gene_alias)
+                glue::glue('{gene_name} ({gene_alias})')
+            } else {
+                gene_name
+            }
+        } else {
+            gene_name
+        }
     }
 
     dataset_info <- reactiveValues(
@@ -152,20 +195,16 @@ shinyServer(function(input, output, session) {
     get_input_gene <- reactive({
         input_gene = ''
 
-        if (!is.null(dataset_info$species)) {
+        if (!is.null(dataset_info$rdat)) {
             if (input$tx_gene %in% rownames(dataset_info$rdat@data)) {
                 input_gene = input$tx_gene
             } else {
-                input_gene = gene_name_std(input$tx_gene, dataset_info$species)
+                input_gene = gene_name_std(input$tx_gene,
+                                           dataset_info$species,
+                                           rownames(dataset_info$rdat@data))
             }
         }
-
-        if (input_gene != '' &&
-            (input_gene %in% rownames(dataset_info$rdat@data))) {
-            input_gene
-        } else {
-            ''
-        }
+        input_gene
     }) %>% debounce(1500)
 
     get_input_gene1 <- reactive({
@@ -175,16 +214,12 @@ shinyServer(function(input, output, session) {
             if (input$tx_gene1 %in% rownames(dataset_info$rdat@data)) {
                 input_gene = input$tx_gene1
             } else {
-                input_gene = gene_name_std(input$tx_gene1, dataset_info$species)
+                input_gene = gene_name_std(input$tx_gene1,
+                                           dataset_info$species,
+                                           rownames(dataset_info$rdat@data))
             }
         }
-
-        if (input_gene != '' &&
-            (input_gene %in% rownames(dataset_info$rdat@data))) {
-            input_gene
-        } else {
-            ''
-        }
+        input_gene
     }) %>% debounce(1500)
 
     get_input_gene2 <- reactive({
@@ -194,16 +229,12 @@ shinyServer(function(input, output, session) {
             if (input$tx_gene2 %in% rownames(dataset_info$rdat@data)) {
                 input_gene = input$tx_gene2
             } else {
-                input_gene = gene_name_std(input$tx_gene2, dataset_info$species)
+                input_gene = gene_name_std(input$tx_gene2,
+                                           dataset_info$species,
+                                           rownames(dataset_info$rdat@data))
             }
         }
-
-        if (input_gene != '' &&
-            (input_gene %in% rownames(dataset_info$rdat@data))) {
-            input_gene
-        } else {
-            ''
-        }
+        input_gene
     }) %>% debounce(1500)
 
     get_cluster_dat_cellranger <- reactive({
@@ -304,10 +335,39 @@ shinyServer(function(input, output, session) {
                           panel.grid.minor = element_blank(),
                           legend.position = "none")
 
-                plot_3 <- Seurat::VlnPlot(dataset_info$rdat,
-                                          group.by = res_name,
-                                          features.plot = get_input_gene(),
-                                          do.return = TRUE)
+                gene_name = get_input_gene()
+                gene_title = gene_name_title(gene_name,
+                                                  species = dataset_info$species)
+                data.use = data.frame(FetchData(
+                    object = dataset_info$rdat,
+                    vars.all = gene_name,
+                ), check.names = FALSE)
+                colnames(data.use) = gene_title
+                ident.use = FetchData(dataset_info$rdat,
+                                      vars.all = res_name)[,1]
+                # plot_3 <- Seurat::VlnPlot(dataset_info$rdat,
+                #                           group.by = res_name,
+                #                           features.plot = get_input_gene(),
+                #                           do.return = TRUE)
+                plot_3 <- Seurat:::SingleVlnPlot(
+                    feature = gene_title,
+                    data = data.use,
+                    cell.ident = ident.use,
+                    gene.names = gene_title,
+                    do.sort = FALSE,
+                    y.max = NULL,
+                    size.x.use = 16,
+                    size.y.use = 16,
+                    size.title.use = 20,
+                    adjust.use = 1,
+                    point.size.use = 1,
+                    cols.use = NULL,
+                    y.log = FALSE,
+                    x.lab.rot = FALSE,
+                    y.lab.rot = FALSE,
+                    legend.position = 'right',
+                    remove.legend = FALSE
+                )
 
                 plot_grid(
                     plot_grid(plot_1, plot_2, align = 'h'),
