@@ -313,6 +313,8 @@ shinyServer(function(input, output, session) {
                 } else {
                     plot_dat <- get_cluster_dat_seurat()
                 }
+                limits_x = range(plot_dat$tSNE_1)
+                limits_y = range(plot_dat$tSNE_2)
 
                 plot_dat  %<>%
                     inner_join(
@@ -328,6 +330,8 @@ shinyServer(function(input, output, session) {
                                  )
                 ) +
                     scale_colour_gradient(low = 'grey', high = 'blue') +
+                    scale_x_continuous(limits = limits_x) +
+                    scale_y_continuous(limits = limits_y) +
                     geom_point(size = 1) +
                     coord_fixed() +
                     theme_bw() +
