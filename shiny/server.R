@@ -86,7 +86,10 @@ shinyServer(function(input, output, session) {
     dataset_info <- reactiveValues(
         species = NULL,
         rdat = NULL,
-        rdat_tsne = NULL
+        # cellranger t-SNE coordinates
+        rdat_tsne_cr = NULL,
+        # seurat t-SNE coordinates
+        rdat_tsne_sr = NULL
     )
 
     get_sig_gene <- reactiveValues(table = NULL)
@@ -122,7 +125,8 @@ shinyServer(function(input, output, session) {
 
             dataset_info$species = NULL
             dataset_info$rdat = NULL
-            dataset_info$rdat_tsne = NULL
+            dataset_info$rdat_tsne_cr = NULL
+            dataset_info$rdat_tsne_sr = NULL
             get_sig_gene$table = data_frame(gene = character())
 
             updateSelectizeInput(session,
@@ -147,9 +151,19 @@ shinyServer(function(input, output, session) {
                              rdat = read_rds(file.path('data', resource$data_dir, paste0(resource$data_dir, '.rds')))
                              incProgress(0.6, message = 'Read t-SNE coordinates')
 
-                             rdat_tsne = read_csv(file.path('data', resource$data_dir, 'projection.csv'), col_types = 'cdd') %>%
+                             rdat_tsne_cr = read_csv(file.path('data', resource$data_dir, 'projection.csv'), col_types = 'cdd') %>%
                                  mutate(Barcode = str_extract(Barcode, '^[^-]+')) %>%
                                  rename(tSNE_1 = `TSNE-1`, tSNE_2 = `TSNE-2`)
+
+                             projection_rds_file = file.path('data', resource$data_dir, 'projection.rds')
+                             if (file.exists(projection_rds_file)) {
+                                 rdat_tsne_sr = read_rds(projection_rds_file)
+                             } else {
+                                 rdat_tsne_sr = GetDimReduction(rdat, reduction.type = 'tsne', slot = 'cell.embeddings') %>%
+                                     as.data.frame() %>%
+                                     rownames_to_column(var = 'Barcode') %>%
+                                     as_data_frame()
+                             }
 
                              incProgress(0.2, message = 'Get resolution list')
 
@@ -172,7 +186,8 @@ shinyServer(function(input, output, session) {
 
             dataset_info$species = resource$species
             dataset_info$rdat = rdat
-            dataset_info$rdat_tsne = rdat_tsne
+            dataset_info$rdat_tsne_cr = rdat_tsne_cr
+            dataset_info$rdat_tsne_sr = rdat_tsne_sr
             get_sig_gene$table = data_frame(gene = character())
         }
     })
@@ -251,30 +266,35 @@ shinyServer(function(input, output, session) {
 
     get_cluster_dat_cellranger <- reactive({
         res_name = paste0('res.', get_resolution())
-        cluster_dat <- dataset_info$rdat_tsne %>%
+        cluster_dat <- dataset_info$rdat_tsne_cr %>%
             left_join(dataset_info$rdat@meta.data %>%
                            rownames_to_column('Barcode') %>%
                            as_data_frame() %>%
                            dplyr::select(Barcode, one_of(res_name)),
                        by = 'Barcode') %>%
             dplyr::rename_(cluster = res_name)
+
+        if (!input$cb_allpt) {
+            cluster_dat %<>%
+                filter(!is.na(cluster))
+        }
         cluster_dat
     })
 
     get_cluster_dat_seurat <- reactive({
         res_name = paste0('res.', get_resolution())
-        cluster_dat <- GetDimReduction(dataset_info$rdat,
-                                       reduction.type = 'tsne',
-                                       slot = 'cell.embeddings') %>%
-            as.data.frame() %>%
-            rownames_to_column(var = 'Barcode') %>%
-            as_data_frame() %>%
-            inner_join(dataset_info$rdat@meta.data %>%
-                           rownames_to_column('Barcode') %>%
-                           as_data_frame() %>%
-                           dplyr::select(Barcode, one_of(res_name)),
-                       by = 'Barcode') %>%
+        cluster_dat <- dataset_info$rdat_tsne_sr %>%
+            left_join(dataset_info$rdat@meta.data %>%
+                          rownames_to_column('Barcode') %>%
+                          as_data_frame() %>%
+                          dplyr::select(Barcode, one_of(res_name)),
+                      by = 'Barcode') %>%
             dplyr::rename_(cluster = res_name)
+
+        if (!input$cb_allpt) {
+            cluster_dat %<>%
+                filter(!is.na(cluster))
+        }
         cluster_dat
     })
 
