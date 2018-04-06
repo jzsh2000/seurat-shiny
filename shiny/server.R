@@ -118,6 +118,8 @@ shinyServer(function(input, output, session) {
 
     observeEvent(input$dataset, {
         if (input$dataset == 'none') {
+            shinyjs::hide(id = 'dat_config')
+
             dataset_info$species = NULL
             dataset_info$rdat = NULL
             dataset_info$rdat_tsne = NULL
@@ -132,6 +134,8 @@ shinyServer(function(input, output, session) {
                                  choices = NULL,
                                  selected = NULL)
         } else {
+            shinyjs::show(id = 'dat_config')
+
             withProgress(message = 'Load seurat object',
                          detail = 'Locate RDS file path',
                          value = 0, {
@@ -163,8 +167,6 @@ shinyServer(function(input, output, session) {
                                                    value = default_resolution)
                              }
 
-                             enable('resolution')
-
                              setProgress(value = 1, message = 'Finish!')
                          })
 
@@ -195,13 +197,23 @@ shinyServer(function(input, output, session) {
     get_input_gene <- reactive({
         input_gene = ''
 
-        if (!is.null(dataset_info$rdat)) {
+        if (input$tx_gene == '') {
+            runjs("document.getElementById('tx_gene').style.borderColor='#CCCCCC'")
+        }
+        else if (!is.null(dataset_info$rdat)) {
+
             if (input$tx_gene %in% rownames(dataset_info$rdat@data)) {
                 input_gene = input$tx_gene
+                runjs("document.getElementById('tx_gene').style.borderColor='#00FF00'")
             } else {
                 input_gene = gene_name_std(input$tx_gene,
                                            dataset_info$species,
                                            rownames(dataset_info$rdat@data))
+                if (input_gene == '') {
+                    runjs("document.getElementById('tx_gene').style.borderColor='#FF0000'")
+                } else {
+                    runjs("document.getElementById('tx_gene').style.borderColor='#00FF00'")
+                }
             }
         }
         input_gene

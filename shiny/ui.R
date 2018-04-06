@@ -22,6 +22,7 @@ resource_list <- read_csv('data/resource_list.csv',
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
 
+    useShinyjs(),
   tags$head(tags$link(rel = "shortcut icon", href = "dc.ico")),
 
   # Application title
@@ -35,60 +36,64 @@ shinyUI(fluidPage(
                        choices = c('(none)' = 'none',
                                    deframe(resource_list[,c('description',
                                                             'label')]))),
-        disabled(
-            sliderInput(inputId = 'resolution',
-                        label = 'Cluster resolution',
-                        min = 0.1, max = 1.5, value = 0.8,
-                        step = 0.1)
-        ),
-        hr(),
-        conditionalPanel(
-            'input.tabset_main == "gene expression"',
-            # checkboxInput(inputId = 'cb_label',
-            #               label = 'Label cluster center',
-            #               value = TRUE),
-            #
-            checkboxInput(inputId = 'cb_cellranger',
-                          label = 'Use original t-SNE',
-                          value = FALSE),
-            checkboxInput(inputId = 'cb_showsize',
-                          label = 'Show cluster size',
-                          value = FALSE),
-            textInput(inputId = 'tx_gene',
-                      label = 'Gene name',
-                      placeholder = 'Your awesome gene')
-        ),
-        conditionalPanel(
-            'input.tabset_main == "co-expression"',
-            selectizeInput(inputId = 'cluster_id',
-                           label = 'Use cluster',
-                           choices = NULL,
-                           selected = NULL,
-                           multiple = TRUE
-                           ),
-            textInput(inputId = 'tx_gene1',
-                      label = 'Gene name',
-                      placeholder = 'Your awesome gene'),
-            textInput(inputId = 'tx_gene2',
-                      label = 'Gene name',
-                      placeholder = 'Your awesome gene')
-        ),
-        conditionalPanel(
-            'input.tabset_main == "signature"',
-            selectizeInput(inputId = 'sig_cluster_1',
-                           label = 'Use cluster',
-                           choices = '(none)',
-                           multiple = TRUE),
-            selectizeInput(inputId = 'sig_cluster_2',
-                           label = 'Compare to',
-                           choices = c('all other cells'),
-                           selected = NULL,
-                           multiple = TRUE),
-            radioButtons(inputId = 'marker_pos',
-                         label = 'Find markers',
-                         inline = TRUE,
-                         choices = c('positive' = 'pos',
-                                     'negative' = 'neg'))
+        hidden(
+            tags$div(
+                id = 'dat_config',
+                sliderInput(inputId = 'resolution',
+                            label = 'Cluster resolution',
+                            min = 0.1, max = 1.5, value = 0.8,
+                            step = 0.1),
+                hr(),
+                conditionalPanel(
+                    'input.tabset_main == "gene expression"',
+                    # checkboxInput(inputId = 'cb_label',
+                    #               label = 'Label cluster center',
+                    #               value = TRUE),
+                    #
+                    checkboxInput(inputId = 'cb_cellranger',
+                                  label = 'Use original t-SNE',
+                                  value = FALSE),
+                    checkboxInput(inputId = 'cb_showsize',
+                                  label = 'Show cluster size',
+                                  value = FALSE),
+                    textInput(inputId = 'tx_gene',
+                              label = 'Gene name',
+                              placeholder = 'Your awesome gene')
+                ),
+                conditionalPanel(
+                    'input.tabset_main == "co-expression"',
+                    selectizeInput(inputId = 'cluster_id',
+                                   label = 'Use cluster',
+                                   choices = NULL,
+                                   selected = NULL,
+                                   multiple = TRUE
+                    ),
+                    textInput(inputId = 'tx_gene1',
+                              label = 'Gene name',
+                              placeholder = 'Your awesome gene'),
+                    textInput(inputId = 'tx_gene2',
+                              label = 'Gene name',
+                              placeholder = 'Your awesome gene')
+                ),
+                conditionalPanel(
+                    'input.tabset_main == "signature"',
+                    selectizeInput(inputId = 'sig_cluster_1',
+                                   label = 'Use cluster',
+                                   choices = NULL,
+                                   multiple = TRUE),
+                    selectizeInput(inputId = 'sig_cluster_2',
+                                   label = 'Compare to',
+                                   choices = NULL,
+                                   selected = NULL,
+                                   multiple = TRUE),
+                    radioButtons(inputId = 'marker_pos',
+                                 label = 'Find markers',
+                                 inline = TRUE,
+                                 choices = c('positive' = 'pos',
+                                             'negative' = 'neg'))
+            )
+        )
+
         )
     ),
 
