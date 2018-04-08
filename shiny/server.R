@@ -89,14 +89,21 @@ shinyServer(function(input, output, session) {
         # cellranger t-SNE coordinates
         rdat_tsne_cr = NULL,
         # seurat t-SNE coordinates
-        rdat_tsne_sr = NULL
+        rdat_tsne_sr = NULL,
+        resolution = NULL
     )
 
     get_sig_gene <- reactiveValues(table = NULL)
     shared_data <- reactiveValues(cor = NULL)
-    get_resolution <- reactive({
-        return(input$resolution)
-    }) %>% debounce(1500)
+    # get_resolution <- reactive({
+    #     return(input$resolution)
+    # }) %>% debounce(1500)
+
+    observeEvent(input$resolution, {
+        if (!is.null(dataset_info$resolution) && input$resolution >= 0.1 && input$resolution <= 1.5) {
+            dataset_info$resolution = input$resolution
+        }
+    })
 
     update_resolution <- function(resolution) {
         res_name = paste0('res.', resolution)
@@ -111,7 +118,7 @@ shinyServer(function(input, output, session) {
                         object = dataset_info$rdat,
                         dims.use = 1:15,
                         print.output = FALSE,
-                        resolution = get_resolution()
+                        resolution = resolution
                     )
                     setProgress(value = 1)
                 }
@@ -127,6 +134,7 @@ shinyServer(function(input, output, session) {
             dataset_info$rdat = NULL
             dataset_info$rdat_tsne_cr = NULL
             dataset_info$rdat_tsne_sr = NULL
+            dataset_info$resolution = NULL
             get_sig_gene$table = data_frame(gene = character())
 
             updateSelectizeInput(session,
@@ -174,11 +182,15 @@ shinyServer(function(input, output, session) {
                              #     as.character()
 
                              default_resolution = round(resource$default_resolution, digits = 1)
-                             if (!is.na(default_resolution) &&
-                                 default_resolution >= 0.1 &&
-                                 default_resolution <= 1.5) {
-                                 updateSliderInput(session, 'resolution',
-                                                   value = default_resolution)
+                             if (!is.na(default_resolution)) {
+                                 if (default_resolution < 0.1 || default_resolution > 1.5) {
+                                     default_resolution = 0.8
+                                 } else {
+                                     updateSliderInput(session, 'resolution',
+                                                       value = default_resolution)
+                                 }
+                             } else {
+                                 default_resolution = 0.8
                              }
 
                              setProgress(value = 1, message = 'Finish!')
@@ -188,14 +200,15 @@ shinyServer(function(input, output, session) {
             dataset_info$rdat = rdat
             dataset_info$rdat_tsne_cr = rdat_tsne_cr
             dataset_info$rdat_tsne_sr = rdat_tsne_sr
+            dataset_info$resolution = default_resolution
             get_sig_gene$table = data_frame(gene = character())
         }
     })
 
-    observe(if (!is.null(get_resolution()) &&
+    observe(if (!is.null(dataset_info$resolution) &&
                 !is.null(dataset_info$rdat)) {
-        res_name = paste0('res.', get_resolution())
-        update_resolution(get_resolution())
+        res_name = paste0('res.', dataset_info$resolution)
+        update_resolution(dataset_info$resolution)
         res_choices = as.character(sort(as.integer(unique(dataset_info$rdat@meta.data[[res_name]]))))
 
         updateSelectizeInput(session, 'cluster_id',
@@ -265,7 +278,7 @@ shinyServer(function(input, output, session) {
     }) %>% debounce(1500)
 
     get_cluster_dat_cellranger <- reactive({
-        res_name = paste0('res.', get_resolution())
+        res_name = paste0('res.', dataset_info$resolution)
         cluster_dat <- dataset_info$rdat_tsne_cr %>%
             left_join(dataset_info$rdat@meta.data %>%
                            rownames_to_column('Barcode') %>%
@@ -282,7 +295,7 @@ shinyServer(function(input, output, session) {
     })
 
     get_cluster_dat_seurat <- reactive({
-        res_name = paste0('res.', get_resolution())
+        res_name = paste0('res.', dataset_info$resolution)
         cluster_dat <- dataset_info$rdat_tsne_sr %>%
             left_join(dataset_info$rdat@meta.data %>%
                           rownames_to_column('Barcode') %>%
@@ -299,7 +312,7 @@ shinyServer(function(input, output, session) {
     })
 
     get_tsne_plot <- reactive({
-        update_resolution(get_resolution())
+        update_resolution(dataset_info$resolution)
         label_column = 'cluster'
         if (input$cb_showsize) {
             label_column = 'cluster_with_size'
@@ -332,8 +345,8 @@ shinyServer(function(input, output, session) {
     })
 
     output$plot_gene_expr <- renderPlot({
-        res_name = paste0('res.', get_resolution())
-        update_resolution(get_resolution())
+        res_name = paste0('res.', dataset_info$resolution)
+        update_resolution(dataset_info$resolution)
 
         if (!is.null(dataset_info$rdat)) {
             if (get_input_gene() != '' &&
@@ -418,7 +431,7 @@ shinyServer(function(input, output, session) {
     }, height = plot_height_func(0.7))
 
     output$plot_gene_expr2 <- renderPlot({
-        res_name = paste0('res.', get_resolution())
+        res_name = paste0('res.', dataset_info$resolution)
         if (!is.null(dataset_info$rdat) &&
             get_input_gene1() != '' &&
             (get_input_gene1() %in% rownames(dataset_info$rdat@data)) &&
@@ -461,7 +474,7 @@ shinyServer(function(input, output, session) {
         withProgress(message = 'Find marker gene',
                      detail = 'collect cell id in cluster',
                      value = 0, {
-            res_name = paste0('res.', get_resolution())
+            res_name = paste0('res.', dataset_info$resolution)
             cell_1 = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] %in% input$sig_cluster_1]
 
             incProgress(amount = 0.2, message = 'run program')
