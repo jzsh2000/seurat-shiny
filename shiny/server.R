@@ -215,11 +215,11 @@ shinyServer(function(input, output, session) {
                              choices = res_choices,
                              selected = '0')
         updateSelectizeInput(session, 'sig_cluster_1',
-                             choices = res_choices,
-                             selected = NULL)
+                             choices = c('', res_choices),
+                             selected = '')
         updateSelectizeInput(session, 'sig_cluster_2',
-                             choices = res_choices,
-                             selected = NULL)
+                             choices = c('(All other cells)', res_choices),
+                             selected = '(All other cells)')
     })
 
     get_input_gene <- reactive({
@@ -475,10 +475,10 @@ shinyServer(function(input, output, session) {
                      detail = 'collect cell id in cluster',
                      value = 0, {
             res_name = paste0('res.', dataset_info$resolution)
-            cell_1 = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] %in% input$sig_cluster_1]
+            cell_1 = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] == input$sig_cluster_1]
 
             incProgress(amount = 0.2, message = 'run program')
-            if (length(input$sig_cluster_2) == 0) {
+            if (input$sig_cluster_2 == '(All other cells)') {
                 if (input$marker_pos == 'pos') {
                     output_df = FindMarkers(dataset_info$rdat,
                                             ident.1 = cell_1,
@@ -498,7 +498,7 @@ shinyServer(function(input, output, session) {
                     output_df = subset(output_df, avg_diff < 0)
                 }
             } else {
-                cell_2 = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] %in% input$sig_cluster_2]
+                cell_2 = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] == input$sig_cluster_2]
                 if (input$marker_pos == 'pos') {
                     output_df = FindMarkers(dataset_info$rdat,
                                             ident.1 = cell_1,
@@ -540,8 +540,8 @@ shinyServer(function(input, output, session) {
         get_sig_cluster_input()
         input$marker_pos
         }, {
-        if (length(input$sig_cluster_1) > 0 &&
-            length(intersect(input$sig_cluster_1, input$sig_cluster_2)) == 0) {
+        if ((input$sig_cluster_1 != '') &&
+            (input$sig_cluster_1 != input$sig_cluster_2)) {
 
             get_sig_gene$table = find_marker_gene()
         }
