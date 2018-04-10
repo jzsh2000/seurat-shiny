@@ -102,22 +102,26 @@ shinyUI(fluidPage(
 
     # Show a plot of the generated distribution
     mainPanel(
-        tabsetPanel(id = 'tabset_main', type = 'pills',
-                    tabPanel(
-                        title = 'gene expression',
-                        plotOutput('plot_gene_expr')
-                    ),
-                    tabPanel(
-                        title = 'co-expression',
-                        verbatimTextOutput('coefficient'),
-                        plotOutput('plot_gene_expr2')
-                    ),
-                    tabPanel(
-                        title = 'signature',
-                        DT::dataTableOutput('table_sig_gene')
-                    )
+        hidden(
+            tags$div(
+                id = 'dat_panel',
+                tabsetPanel(id = 'tabset_main', type = 'pills',
+                            tabPanel(
+                                title = 'gene expression',
+                                plotOutput('plot_gene_expr')
+                            ),
+                            tabPanel(
+                                title = 'co-expression',
+                                verbatimTextOutput('coefficient'),
+                                plotOutput('plot_gene_expr2')
+                            ),
+                            tabPanel(
+                                title = 'signature',
+                                DT::dataTableOutput('table_sig_gene')
+                            )
+                )
+            )
         )
-
     )
   )
 ))

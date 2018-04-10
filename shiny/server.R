@@ -129,6 +129,7 @@ shinyServer(function(input, output, session) {
     observeEvent(input$dataset, {
         if (input$dataset == 'none') {
             shinyjs::hide(id = 'dat_config')
+            shinyjs::hide(id = 'dat_panel')
 
             dataset_info$species = NULL
             dataset_info$rdat = NULL
@@ -147,6 +148,7 @@ shinyServer(function(input, output, session) {
                                  selected = NULL)
         } else {
             shinyjs::show(id = 'dat_config')
+            shinyjs::show(id = 'dat_panel')
 
             withProgress(message = 'Load seurat object',
                          detail = 'Locate RDS file path',
