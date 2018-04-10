@@ -33,7 +33,7 @@ shinyUI(fluidPage(
     sidebarPanel(
         selectizeInput(inputId = 'dataset',
                        label = 'Dataset',
-                       choices = c('(none)' = 'none',
+                       choices = c(' ' = 'none',
                                    deframe(resource_list[,c('description',
                                                             'label')]))),
         hidden(
