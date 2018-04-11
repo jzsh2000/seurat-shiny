@@ -213,12 +213,14 @@ shinyServer(function(input, output, session) {
         update_resolution(dataset_info$resolution)
         res_choices = as.character(sort(as.integer(unique(dataset_info$rdat@meta.data[[res_name]]))))
 
+        # multiple selection
         updateSelectizeInput(session, 'cluster_id',
-                             choices = res_choices,
-                             selected = '0')
+                             choices = res_choices)
+        # single selection
         updateSelectizeInput(session, 'sig_cluster_1',
                              choices = c('', res_choices),
                              selected = '')
+        # single selection
         updateSelectizeInput(session, 'sig_cluster_2',
                              choices = c('(All other cells)', res_choices),
                              selected = '(All other cells)')

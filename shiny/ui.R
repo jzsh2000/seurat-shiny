@@ -72,10 +72,10 @@ shinyUI(fluidPage(
                                    multiple = TRUE
                     ),
                     textInput(inputId = 'tx_gene1',
-                              label = 'Gene name',
+                              label = 'Gene name #1',
                               placeholder = 'Your awesome gene'),
                     textInput(inputId = 'tx_gene2',
-                              label = 'Gene name',
+                              label = 'Gene name #2',
                               placeholder = 'Your awesome gene')
                 ),
                 conditionalPanel(
