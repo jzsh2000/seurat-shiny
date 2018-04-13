@@ -20,6 +20,9 @@ resource_list <- read_csv('data/resource_list.csv',
                           col_types = 'ccccd')
 gene_human <- read_csv('gene/gene-human.csv', col_types = 'cc')
 gene_mouse <- read_csv('gene/gene-mouse.csv', col_types = 'cc')
+color_primary = '#CCCCCC'
+color_error = '#FF0000'
+color_success = '#00FF00'
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
@@ -255,21 +258,21 @@ shinyServer(function(input, output, session) {
         input_gene = ''
 
         if (input$tx_gene1 == '') {
-            runjs("document.getElementById('tx_gene1').style.borderColor='#CCCCCC'")
+            runjs(glue("document.getElementById('tx_gene1').style.borderColor='{color_primary}'"))
         }
         else if (!is.null(dataset_info$rdat)) {
 
             if (input$tx_gene %in% rownames(dataset_info$rdat@data)) {
                 input_gene = input$tx_gene1
-                runjs("document.getElementById('tx_gene1').style.borderColor='#00FF00'")
+                runjs(glue("document.getElementById('tx_gene1').style.borderColor='{color_success}'"))
             } else {
                 input_gene = gene_name_std(input$tx_gene1,
                                            dataset_info$species,
                                            rownames(dataset_info$rdat@data))
                 if (input_gene == '') {
-                    runjs("document.getElementById('tx_gene1').style.borderColor='#FF0000'")
+                    runjs(glue("document.getElementById('tx_gene1').style.borderColor='{color_error}'"))
                 } else {
-                    runjs("document.getElementById('tx_gene1').style.borderColor='#00FF00'")
+                    runjs(glue("document.getElementById('tx_gene1').style.borderColor='{color_success}'"))
                 }
             }
         }
