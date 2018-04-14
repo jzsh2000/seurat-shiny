@@ -233,21 +233,21 @@ shinyServer(function(input, output, session) {
         input_gene = ''
 
         if (input$tx_gene == '') {
-            runjs("document.getElementById('tx_gene').style.borderColor='#CCCCCC'")
+            runjs(glue("document.getElementById('tx_gene').style.borderColor='{color_primary}'"))
         }
         else if (!is.null(dataset_info$rdat)) {
 
             if (input$tx_gene %in% rownames(dataset_info$rdat@data)) {
                 input_gene = input$tx_gene
-                runjs("document.getElementById('tx_gene').style.borderColor='#00FF00'")
+                runjs(glue("document.getElementById('tx_gene').style.borderColor='{color_success}'"))
             } else {
                 input_gene = gene_name_std(input$tx_gene,
                                            dataset_info$species,
                                            rownames(dataset_info$rdat@data))
                 if (input_gene == '') {
-                    runjs("document.getElementById('tx_gene').style.borderColor='#FF0000'")
+                    runjs(glue("document.getElementById('tx_gene').style.borderColor='{color_error}'"))
                 } else {
-                    runjs("document.getElementById('tx_gene').style.borderColor='#00FF00'")
+                    runjs(glue("document.getElementById('tx_gene').style.borderColor='{color_success}'"))
                 }
             }
         }
@@ -283,21 +283,21 @@ shinyServer(function(input, output, session) {
         input_gene = ''
 
         if (input$tx_gene2 == '') {
-            runjs("document.getElementById('tx_gene2').style.borderColor='#CCCCCC'")
+            runjs(glue("document.getElementById('tx_gene2').style.borderColor='{color_primary}'"))
         }
         else if (!is.null(dataset_info$rdat)) {
 
             if (input$tx_gene %in% rownames(dataset_info$rdat@data)) {
                 input_gene = input$tx_gene2
-                runjs("document.getElementById('tx_gene2').style.borderColor='#00FF00'")
+                runjs(glue("document.getElementById('tx_gene2').style.borderColor='{color_success}'"))
             } else {
                 input_gene = gene_name_std(input$tx_gene2,
                                            dataset_info$species,
                                            rownames(dataset_info$rdat@data))
                 if (input_gene == '') {
-                    runjs("document.getElementById('tx_gene2').style.borderColor='#FF0000'")
+                    runjs(glue("document.getElementById('tx_gene2').style.borderColor='{color_error}'"))
                 } else {
-                    runjs("document.getElementById('tx_gene2').style.borderColor='#00FF00'")
+                    runjs(glue("document.getElementById('tx_gene2').style.borderColor='{color_success}'"))
                 }
             }
         }
