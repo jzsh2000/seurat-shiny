@@ -32,7 +32,7 @@ shinyUI(fluidPage(
   sidebarLayout(
     sidebarPanel(
         selectizeInput(inputId = 'dataset',
-                       label = 'Dataset',
+                       label = 'Dataset [*]',
                        choices = c(' ' = 'none',
                                    deframe(resource_list[,c('description',
                                                             'label')]))),
@@ -72,16 +72,16 @@ shinyUI(fluidPage(
                                    multiple = TRUE
                     ),
                     textInput(inputId = 'tx_gene1',
-                              label = 'Gene name #1',
+                              label = 'Gene name #1 [*]',
                               placeholder = 'Your awesome gene'),
                     textInput(inputId = 'tx_gene2',
-                              label = 'Gene name #2',
+                              label = 'Gene name #2 [*]',
                               placeholder = 'Your awesome gene')
                 ),
                 conditionalPanel(
                     'input.tabset_main == "signature"',
                     selectizeInput(inputId = 'sig_cluster_1',
-                                   label = 'Use cluster',
+                                   label = 'Use cluster [*]',
                                    choices = '',
                                    multiple = FALSE),
                     selectizeInput(inputId = 'sig_cluster_2',
