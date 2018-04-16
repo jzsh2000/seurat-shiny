@@ -22,11 +22,15 @@ resource_list <- read_csv('data/resource_list.csv',
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
 
-    useShinyjs(),
-  tags$head(tags$link(rel = "shortcut icon", href = "dc.ico")),
+  useShinyjs(),
+  tags$head(tags$link(rel = "shortcut icon", href = "dc.ico"),
+            tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
+            ),
 
   # Application title
   titlePanel(ifelse(exists('app_title'), app_title, "single-cell RNA-seq data visualization")),
+
+  hr(),
 
   # Sidebar with a slider input for number of bins
   sidebarLayout(
