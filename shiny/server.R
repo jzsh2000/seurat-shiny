@@ -23,6 +23,15 @@ gene_mouse <- read_csv('gene/gene-mouse.csv', col_types = 'cc')
 color_primary = '#CCCCCC'
 color_error = '#FF0000'
 color_success = '#00FF00'
+empty_sig_df <- data_frame(
+    gene = character(),
+    myAUC = numeric(),
+    avg_diff = numeric(),
+    power = numeric(),
+    avg_logFC = numeric(),
+    pct.1 = numeric(),
+    pct.2 = numeric()
+)
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
@@ -139,7 +148,7 @@ shinyServer(function(input, output, session) {
             dataset_info$rdat_tsne_cr = NULL
             dataset_info$rdat_tsne_sr = NULL
             dataset_info$resolution = NULL
-            get_sig_gene$table = data_frame(gene = character())
+            get_sig_gene$table = empty_sig_df
 
             updateSelectizeInput(session,
                                  inputId = 'sig_cluster_1',,
@@ -206,7 +215,8 @@ shinyServer(function(input, output, session) {
             dataset_info$rdat_tsne_cr = rdat_tsne_cr
             dataset_info$rdat_tsne_sr = rdat_tsne_sr
             dataset_info$resolution = default_resolution
-            get_sig_gene$table = data_frame(gene = character())
+            get_sig_gene$table = empty_sig_df
+            runjs("document.getElementById('warning_info').innerHTML = ''")
         }
     })
 
@@ -505,53 +515,70 @@ shinyServer(function(input, output, session) {
             cell_1 = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] == input$sig_cluster_1]
 
             incProgress(amount = 0.2, message = 'run program')
-            if (input$sig_cluster_2 == '(All other cells)') {
-                if (input$marker_pos == 'pos') {
-                    output_df = FindMarkers(dataset_info$rdat,
-                                            ident.1 = cell_1,
-                                            ident.2 = NULL,
-                                            test.use = 'roc',
-                                            min.pct = 0.25,
-                                            only.pos = TRUE
-                    )
-                } else {
-                    output_df = FindMarkers(dataset_info$rdat,
-                                            ident.1 = cell_1,
-                                            ident.2 = NULL,
-                                            test.use = 'roc',
-                                            min.pct = 0.25,
-                                            only.pos = FALSE
-                    )
-                    output_df = subset(output_df, avg_diff < 0)
-                }
+            if (length(cell_1) <= 3) {
+                runjs("document.getElementById('warning_info').innerHTML = '<font color=red>Warning: Cell group 1 has fewer than 3 cells</font>'")
+                output_df = empty_sig_df
             } else {
-                cell_2 = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] == input$sig_cluster_2]
-                if (input$marker_pos == 'pos') {
-                    output_df = FindMarkers(dataset_info$rdat,
-                                            ident.1 = cell_1,
-                                            ident.2 = cell_2,
-                                            test.use = 'roc',
-                                            min.pct = 0.25,
-                                            only.pos = TRUE
-                                            )
+                if (input$sig_cluster_2 == '(All other cells)') {
+                    runjs("document.getElementById('warning_info').innerHTML = '<font color=blue>Everything OK!</font>'")
+                    if (input$marker_pos == 'pos') {
+                        output_df = FindMarkers(dataset_info$rdat,
+                                                ident.1 = cell_1,
+                                                ident.2 = NULL,
+                                                test.use = 'roc',
+                                                min.pct = 0.25,
+                                                only.pos = TRUE
+                        )
+                    } else {
+                        output_df = FindMarkers(dataset_info$rdat,
+                                                ident.1 = cell_1,
+                                                ident.2 = NULL,
+                                                test.use = 'roc',
+                                                min.pct = 0.25,
+                                                only.pos = FALSE
+                        )
+                        output_df = subset(output_df, avg_diff < 0)
+                    }
                 } else {
-                    output_df = FindMarkers(dataset_info$rdat,
-                                            ident.1 = cell_2,
-                                            ident.2 = cell_1,
-                                            test.use = 'roc',
-                                            min.pct = 0.25,
-                                            only.pos = TRUE
-                    )
+                    cell_2 = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] == input$sig_cluster_2]
+                    if (length(cell_2) <= 3) {
+                        runjs("document.getElementById('warning_info').innerHTML = '<font color=red>Warning: Cell group 2 has fewer than 3 cells</font>'")
+                        output_df = empty_sig_df
+                    } else {
+                        runjs("document.getElementById('warning_info').innerHTML = '<font color=blue>Everything OK!</font>'")
+                        if (input$marker_pos == 'pos') {
+
+                            output_df = FindMarkers(dataset_info$rdat,
+                                                    ident.1 = cell_1,
+                                                    ident.2 = cell_2,
+                                                    test.use = 'roc',
+                                                    min.pct = 0.25,
+                                                    only.pos = TRUE
+                            )
+                        } else {
+                            runjs("document.getElementById('warning_info').innerHTML = '<font color=blue>Everything OK!</font>'")
+                            output_df = FindMarkers(dataset_info$rdat,
+                                                    ident.1 = cell_2,
+                                                    ident.2 = cell_1,
+                                                    test.use = 'roc',
+                                                    min.pct = 0.25,
+                                                    only.pos = TRUE
+                            )
+                        }
+                    }
                 }
             }
 
             incProgress(amount = 0.7, message = 'create output dataframe')
-            output_df %<>%
-                rownames_to_column(var = 'gene') %>%
-                as_data_frame() %>%
-                dplyr::select(-p_val_adj) %>%
-                dplyr::filter(myAUC >= 0.7) %>%
-                arrange(desc(myAUC))
+
+            if (!('gene' %in% colnames(output_df))) {
+                output_df %<>%
+                    rownames_to_column(var = 'gene') %>%
+                    as_data_frame() %>%
+                    dplyr::select(-p_val_adj) %>%
+                    dplyr::filter(myAUC >= 0.7) %>%
+                    arrange(desc(myAUC))
+            }
 
             setProgress(value = 1, message = 'Finish!')
         })

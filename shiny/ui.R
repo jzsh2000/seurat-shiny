@@ -121,6 +121,7 @@ shinyUI(fluidPage(
                             ),
                             tabPanel(
                                 title = 'signature',
+                                tags$p(id = 'warning_info'),
                                 DT::dataTableOutput('table_sig_gene')
                             )
                 )
