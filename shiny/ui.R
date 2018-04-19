@@ -10,6 +10,7 @@
 
 
 library(shiny)
+library(shinythemes)
 library(shinyjs)
 library(tidyverse)
 
@@ -20,7 +21,7 @@ resource_list <- read_csv('data/resource_list.csv',
                           col_types = 'ccccd')
 
 # Define UI for application that draws a histogram
-shinyUI(fluidPage(
+shinyUI(fluidPage(theme = shinytheme('cerulean'),
 
   useShinyjs(),
   tags$head(tags$link(rel = "shortcut icon", href = "dc.ico"),
@@ -109,7 +110,7 @@ shinyUI(fluidPage(
         hidden(
             tags$div(
                 id = 'dat_panel',
-                tabsetPanel(id = 'tabset_main', type = 'pills',
+                tabsetPanel(id = 'tabset_main', type = 'tabs',
                             tabPanel(
                                 title = 'gene expression',
                                 plotOutput('plot_gene_expr')
