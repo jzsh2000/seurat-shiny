@@ -333,17 +333,27 @@ shinyServer(function(input, output, session) {
 
     get_cluster_dat_seurat <- reactive({
         res_name = paste0('res.', dataset_info$resolution)
-        cluster_dat <- dataset_info$rdat_tsne_sr %>%
-            left_join(dataset_info$rdat@meta.data %>%
-                          rownames_to_column('Barcode') %>%
-                          as_data_frame() %>%
-                          dplyr::select(Barcode, one_of(res_name)),
-                      by = 'Barcode') %>%
-            dplyr::rename_(cluster = res_name)
-
         if (!input$cb_allpt) {
-            cluster_dat %<>%
-                filter(!is.na(cluster))
+            cluster_dat <- GetDimReduction(dataset_info$rdat,
+                                           reduction.type = 'tsne',
+                                           slot = 'cell.embeddings') %>%
+                as.data.frame() %>%
+                rownames_to_column(var = 'Barcode') %>%
+                as_data_frame() %>%
+                left_join(dataset_info$rdat@meta.data %>%
+                              rownames_to_column('Barcode') %>%
+                              as_data_frame() %>%
+                              dplyr::select(Barcode, one_of(res_name)),
+                          by = 'Barcode') %>%
+                dplyr::rename_(cluster = res_name)
+        } else {
+            cluster_dat <- dataset_info$rdat_tsne_sr %>%
+                left_join(dataset_info$rdat@meta.data %>%
+                              rownames_to_column('Barcode') %>%
+                              as_data_frame() %>%
+                              dplyr::select(Barcode, one_of(res_name)),
+                          by = 'Barcode') %>%
+                dplyr::rename_(cluster = res_name)
         }
         cluster_dat
     })
