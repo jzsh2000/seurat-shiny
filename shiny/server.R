@@ -101,6 +101,7 @@ shinyServer(function(input, output, session) {
         # cellranger t-SNE coordinates
         rdat_tsne_cr = NULL,
         # seurat t-SNE coordinates
+        rdat_tsne_sr_full = NULL,
         rdat_tsne_sr = NULL,
         resolution = NULL
     )
@@ -146,6 +147,7 @@ shinyServer(function(input, output, session) {
             dataset_info$species = NULL
             dataset_info$rdat = NULL
             dataset_info$rdat_tsne_cr = NULL
+            dataset_info$rdat_tsne_sr_full = NULL
             dataset_info$rdat_tsne_sr = NULL
             dataset_info$resolution = NULL
             get_sig_gene$table = empty_sig_df
@@ -178,13 +180,15 @@ shinyServer(function(input, output, session) {
                                  rename(tSNE_1 = `TSNE-1`, tSNE_2 = `TSNE-2`)
 
                              projection_rds_file = file.path('data', resource$data_dir, 'projection.rds')
+
+                             rdat_tsne_sr = GetDimReduction(rdat, reduction.type = 'tsne', slot = 'cell.embeddings') %>%
+                                 as.data.frame() %>%
+                                 rownames_to_column(var = 'Barcode') %>%
+                                 as_data_frame()
                              if (file.exists(projection_rds_file)) {
-                                 rdat_tsne_sr = read_rds(projection_rds_file)
+                                 rdat_tsne_sr_full = read_rds(projection_rds_file)
                              } else {
-                                 rdat_tsne_sr = GetDimReduction(rdat, reduction.type = 'tsne', slot = 'cell.embeddings') %>%
-                                     as.data.frame() %>%
-                                     rownames_to_column(var = 'Barcode') %>%
-                                     as_data_frame()
+                                 rdat_tsne_sr_full = rdat_tsne_sr
                              }
 
                              incProgress(0.2, message = 'Get resolution list')
@@ -213,6 +217,7 @@ shinyServer(function(input, output, session) {
             dataset_info$species = resource$species
             dataset_info$rdat = rdat
             dataset_info$rdat_tsne_cr = rdat_tsne_cr
+            dataset_info$rdat_tsne_sr_full = rdat_tsne_sr_full
             dataset_info$rdat_tsne_sr = rdat_tsne_sr
             dataset_info$resolution = default_resolution
             get_sig_gene$table = empty_sig_df
@@ -334,12 +339,7 @@ shinyServer(function(input, output, session) {
     get_cluster_dat_seurat <- reactive({
         res_name = paste0('res.', dataset_info$resolution)
         if (!input$cb_allpt) {
-            cluster_dat <- GetDimReduction(dataset_info$rdat,
-                                           reduction.type = 'tsne',
-                                           slot = 'cell.embeddings') %>%
-                as.data.frame() %>%
-                rownames_to_column(var = 'Barcode') %>%
-                as_data_frame() %>%
+            cluster_dat <- dataset_info$rdat_tsne_sr %>%
                 left_join(dataset_info$rdat@meta.data %>%
                               rownames_to_column('Barcode') %>%
                               as_data_frame() %>%
@@ -347,7 +347,7 @@ shinyServer(function(input, output, session) {
                           by = 'Barcode') %>%
                 dplyr::rename_(cluster = res_name)
         } else {
-            cluster_dat <- dataset_info$rdat_tsne_sr %>%
+            cluster_dat <- dataset_info$rdat_tsne_sr_full %>%
                 left_join(dataset_info$rdat@meta.data %>%
                               rownames_to_column('Barcode') %>%
                               as_data_frame() %>%
