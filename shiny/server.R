@@ -380,7 +380,7 @@ shinyServer(function(input, output, session) {
                           summarise(tSNE_1 = mean(tSNE_1),
                                     tSNE_2 = mean(tSNE_2),
                                     cluster_size = n()) %>%
-                          mutate(cluster_with_size = paste0('Cluster ', cluster, ' (', cluster_size, ')')),
+                          mutate(cluster_with_size = glue('Cluster {cluster} ({cluster_size})')),
                       mapping = aes_string(x = 'tSNE_1', y = 'tSNE_2',
                                            label = label_column),
                       color = 'black',
@@ -626,5 +626,16 @@ shinyServer(function(input, output, session) {
             }
         }
     )
+
+    observe({
+        query <- parseQueryString(session$clientData$url_search)
+        if (!is.null(query[['dataset']])) {
+            if (query[['dataset']] %in% resource_list$label) {
+                updateSelectizeInput(session,
+                                     inputId = 'dataset',
+                                     selected = query[['dataset']])
+            }
+        }
+    })
 })
 
