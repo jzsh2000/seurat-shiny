@@ -374,6 +374,7 @@ shinyServer(function(input, output, session) {
         ggplot(data = plot_dat,
                mapping = aes(x = tSNE_1, y = tSNE_2, color = cluster)) +
             geom_point(size = 1) +
+            scale_color_discrete(na.value = 'lightgrey') +
             geom_text(plot_dat %>%
                           group_by(cluster) %>%
                           summarise(tSNE_1 = mean(tSNE_1),
@@ -421,7 +422,7 @@ shinyServer(function(input, output, session) {
                                      color = expr
                                  )
                 ) +
-                    scale_colour_gradient(low = 'grey', high = 'blue') +
+                    scale_colour_gradient(low = 'lightgrey', high = 'blue') +
                     scale_x_continuous(limits = limits_x) +
                     scale_y_continuous(limits = limits_y) +
                     geom_point(size = 1) +
