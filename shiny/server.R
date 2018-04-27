@@ -17,7 +17,8 @@ library(cowplot)
 library(glue)
 
 resource_list <- read_csv('data/resource_list.csv',
-                          col_types = 'ccccd')
+                          col_types = 'ccccd') %>%
+    replace_na(list(default_resolution = 0.8))
 gene_human <- read_csv('gene/gene-human.csv', col_types = 'cc')
 gene_mouse <- read_csv('gene/gene-mouse.csv', col_types = 'cc')
 color_primary = '#CCCCCC'
