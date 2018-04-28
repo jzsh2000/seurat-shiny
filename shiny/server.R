@@ -16,14 +16,21 @@ library(DT)
 library(cowplot)
 library(glue)
 
+# data.frame for all available dataset
 resource_list <- read_csv('data/resource_list.csv',
                           col_types = 'ccccd') %>%
     replace_na(list(default_resolution = 0.8))
+
+# gene official symbols and their synonyms
 gene_human <- read_csv('gene/gene-human.csv', col_types = 'cc')
 gene_mouse <- read_csv('gene/gene-mouse.csv', col_types = 'cc')
+
+# color for gene name validation: grey (empty) -- red (invalid) -- green (valid)
 color_primary = '#CCCCCC'
 color_error = '#FF0000'
 color_success = '#00FF00'
+
+# data.frame for signature gene
 empty_sig_df <- data_frame(
     gene = character(),
     myAUC = numeric(),
@@ -108,10 +115,6 @@ shinyServer(function(input, output, session) {
     )
 
     get_sig_gene <- reactiveValues(table = NULL)
-    shared_data <- reactiveValues(cor = NULL)
-    # get_resolution <- reactive({
-    #     return(input$resolution)
-    # }) %>% debounce(1500)
 
     observeEvent(input$resolution, {
         if (!is.null(dataset_info$resolution) && input$resolution >= 0.1 && input$resolution <= 1.5) {
@@ -497,15 +500,19 @@ shinyServer(function(input, output, session) {
             ) %>%
                 filter(Barcode %in% valid_cells)
 
-            shared_data$cor = cor(plot_dat[[get_input_gene1()]],
-                                  plot_dat[[get_input_gene2()]])
+            plot_cor = cor(plot_dat[[get_input_gene1()]],
+                           plot_dat[[get_input_gene2()]])
+            plot_title = glue('{get_input_gene1()} & {get_input_gene2()} (cluster {paste(input$cluster_id, collapse = "/")}) [r = {round(plot_cor, digits = 2)}]')
+
             ggplot(plot_dat,
                 aes_string(
                     x = get_input_gene1(),
                     y = get_input_gene2()
                     )
             ) +
-            geom_point(size = 1) +
+            geom_point(size = 3, alpha = 0.7) +
+            geom_rug(sides = 'bl') +
+            ggtitle(plot_title) +
             coord_fixed() +
             theme_bw() +
             theme(panel.grid.major = element_blank(),
@@ -514,10 +521,6 @@ shinyServer(function(input, output, session) {
 
         }
     }, height = plot_height_func(0.6))
-
-    output$coefficient <- renderText({
-        paste('Pearson correlation coeffient:', shared_data$cor)
-    })
 
     find_marker_gene <- function() {
         withProgress(message = 'Find marker gene',

@@ -117,7 +117,7 @@ shinyUI(fluidPage(theme = shinytheme('cerulean'),
                             ),
                             tabPanel(
                                 title = 'co-expression',
-                                verbatimTextOutput('coefficient'),
+                                # verbatimTextOutput('coefficient'),
                                 plotOutput('plot_gene_expr2')
                             ),
                             tabPanel(
