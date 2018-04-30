@@ -16,19 +16,29 @@ library(DT)
 library(cowplot)
 library(glue)
 
-# data.frame for all available dataset
-resource_list <- read_csv('data/resource_list.csv',
-                          col_types = 'ccccd') %>%
-    replace_na(list(default_resolution = 0.8))
-
-# gene official symbols and their synonyms
-gene_human <- read_csv('gene/gene-human.csv', col_types = 'cc')
-gene_mouse <- read_csv('gene/gene-mouse.csv', col_types = 'cc')
+## ---------- key configurations
 
 # color for gene name validation: grey (empty) -- red (invalid) -- green (valid)
 color_primary = '#CCCCCC'
 color_error = '#FF0000'
 color_success = '#00FF00'
+
+# default resolution
+res_default = 0.8
+
+# plot view scale factor
+scale_factor_default = 0.7
+
+## ----------
+
+# data.frame for all available dataset
+resource_list <- read_csv('data/resource_list.csv',
+                          col_types = 'ccccd') %>%
+    replace_na(list(default_resolution = res_default))
+
+# gene official symbols and their synonyms
+gene_human <- read_csv('gene/gene-human.csv', col_types = 'cc')
+gene_mouse <- read_csv('gene/gene-mouse.csv', col_types = 'cc')
 
 # data.frame for signature gene
 empty_sig_df <- data_frame(
@@ -480,7 +490,7 @@ shinyServer(function(input, output, session) {
             }
         }
     # }, width = 800, height = 600)
-    }, height = plot_height_func(0.7))
+    }, height = plot_height_func(scale_factor_default))
 
     output$plot_gene_expr2 <- renderPlot({
         res_name = paste0('res.', dataset_info$resolution)
@@ -520,7 +530,7 @@ shinyServer(function(input, output, session) {
                   legend.position = "none")
 
         }
-    }, height = plot_height_func(0.6))
+    }, height = plot_height_func(scale_factor_default - 0.1))
 
     find_marker_gene <- function() {
         withProgress(message = 'Find marker gene',
