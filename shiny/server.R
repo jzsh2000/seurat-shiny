@@ -29,7 +29,7 @@ res_default = 0.8
 # plot view scale factor
 scale_factor_default = 0.7
 
-## ----------
+## ---------- load
 
 # data.frame for all available dataset
 resource_list <- read_csv('data/resource_list.csv',
@@ -37,8 +37,11 @@ resource_list <- read_csv('data/resource_list.csv',
     replace_na(list(default_resolution = res_default))
 
 # gene official symbols and their synonyms
+# see: ftp://ftp.ncbi.nlm.nih.gov/gene/DATA/GENE_INFO/Mammalia/
 gene_human <- read_csv('gene/gene-human.csv', col_types = 'cc')
 gene_mouse <- read_csv('gene/gene-mouse.csv', col_types = 'cc')
+
+## ----------
 
 # data.frame for signature gene
 empty_sig_df <- data_frame(
@@ -65,11 +68,9 @@ shinyServer(function(input, output, session) {
             input_gene = gene_name
         } else {
             if (species == 'human') {
-                input_gene = c(limma::alias2Symbol(stringr::str_to_upper(gene_name),
-                                                   species = 'Hs'), '')[1]
+                input_gene = c(limma::alias2Symbol(stringr::str_to_upper(gene_name), species = 'Hs'), '')[1]
             } else if (species == 'mouse') {
-                input_gene = c(limma::alias2Symbol(stringr::str_to_title(gene_name),
-                                                   species = 'Mm'), '')[1]
+                input_gene = c(limma::alias2Symbol(stringr::str_to_title(gene_name), species = 'Mm'), '')[1]
             } else {
                 input_gene = ''
             }
@@ -81,7 +82,7 @@ shinyServer(function(input, output, session) {
         input_gene
     }
 
-    # create title for violin plot
+    # create title for violin plot (show gene symbol and all synonyms)
     gene_name_title <- function(gene_name, species = 'human') {
         shorten_alias <- function(string) {
             alias_full = str_split(string, pattern = '\\|')[[1]]
@@ -127,13 +128,14 @@ shinyServer(function(input, output, session) {
     get_sig_gene <- reactiveValues(table = NULL)
 
     observeEvent(input$resolution, {
-        if (!is.null(dataset_info$resolution) && input$resolution >= 0.1 && input$resolution <= 1.5) {
+        req(dataset_info$resolution)
+        if (input$resolution >= 0.1 && input$resolution <= 1.5) {
             dataset_info$resolution = input$resolution
         }
     })
 
     update_resolution <- function(resolution) {
-        res_name = paste0('res.', resolution)
+        res_name = glue('res.{resolution}')
         if (!is.null(dataset_info$rdat) &&
             !(res_name %in% colnames(dataset_info$rdat@meta.data))) {
             print('update resolution...')
@@ -185,8 +187,7 @@ shinyServer(function(input, output, session) {
                                  filter(label == input$dataset)
                              incProgress(0.1, message = 'Read RDS file')
 
-                             # print(file.path('data', resource$data_dir, paste0(resource$data_dir, '.rds')))
-                             rdat = read_rds(file.path('data', resource$data_dir, paste0(resource$data_dir, '.rds')))
+                             rdat = read_rds(file.path('data', resource$data_dir, glue('{resource$data_dir}.rds')))
                              incProgress(0.6, message = 'Read t-SNE coordinates')
 
                              rdat_tsne_cr = read_csv(file.path('data', resource$data_dir, 'projection.csv'), col_types = 'cdd') %>%
@@ -241,7 +242,7 @@ shinyServer(function(input, output, session) {
 
     observe(if (!is.null(dataset_info$resolution) &&
                 !is.null(dataset_info$rdat)) {
-        res_name = paste0('res.', dataset_info$resolution)
+        res_name = glue('res.{dataset_info$resolution}')
         update_resolution(dataset_info$resolution)
         res_choices = as.character(sort(as.integer(unique(dataset_info$rdat@meta.data[[res_name]]))))
 
@@ -334,7 +335,7 @@ shinyServer(function(input, output, session) {
     }) %>% debounce(1500)
 
     get_cluster_dat_cellranger <- reactive({
-        res_name = paste0('res.', dataset_info$resolution)
+        res_name = glue('res.{dataset_info$resolution}')
         cluster_dat <- dataset_info$rdat_tsne_cr %>%
             left_join(dataset_info$rdat@meta.data %>%
                            rownames_to_column('Barcode') %>%
@@ -351,7 +352,7 @@ shinyServer(function(input, output, session) {
     })
 
     get_cluster_dat_seurat <- reactive({
-        res_name = paste0('res.', dataset_info$resolution)
+        res_name = glue('res.{dataset_info$resolution}')
         if (!input$cb_allpt) {
             cluster_dat <- dataset_info$rdat_tsne_sr %>%
                 left_join(dataset_info$rdat@meta.data %>%
@@ -407,7 +408,7 @@ shinyServer(function(input, output, session) {
     })
 
     output$plot_gene_expr <- renderPlot({
-        res_name = paste0('res.', dataset_info$resolution)
+        res_name = glue('res.{dataset_info$resolution}')
         update_resolution(dataset_info$resolution)
 
         if (!is.null(dataset_info$rdat)) {
@@ -493,7 +494,7 @@ shinyServer(function(input, output, session) {
     }, height = plot_height_func(scale_factor_default))
 
     output$plot_gene_expr2 <- renderPlot({
-        res_name = paste0('res.', dataset_info$resolution)
+        res_name = glue('res.{dataset_info$resolution}')
         if (!is.null(dataset_info$rdat) &&
             get_input_gene1() != '' &&
             (get_input_gene1() %in% rownames(dataset_info$rdat@data)) &&
@@ -536,7 +537,7 @@ shinyServer(function(input, output, session) {
         withProgress(message = 'Find marker gene',
                      detail = 'collect cell id in cluster',
                      value = 0, {
-            res_name = paste0('res.', dataset_info$resolution)
+            res_name = glue('res.{dataset_info$resolution}')
             cell_1 = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] == input$sig_cluster_1]
 
             incProgress(amount = 0.2, message = 'run program')
