@@ -18,16 +18,9 @@ library(glue)
 
 ## ---------- key configurations
 
-# color for gene name validation: grey (empty) -- red (invalid) -- green (valid)
-color_primary = '#CCCCCC'
-color_error = '#FF0000'
-color_success = '#00FF00'
-
-# default resolution
-res_default = 0.8
-
-# plot view scale factor
-scale_factor_default = 0.7
+if (file.exists('config.txt')) {
+    source('config.txt')
+}
 
 ## ---------- load
 
