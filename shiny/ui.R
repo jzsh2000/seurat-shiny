@@ -13,12 +13,18 @@ library(shiny)
 library(shinythemes)
 library(shinyjs)
 library(tidyverse)
+library(glue)
+
+resource_list <- read_csv('data/resource_list.csv',
+                          col_types = 'ccccd')
 
 if (file.exists('config.txt')) {
     source('config.txt')
 }
-resource_list <- read_csv('data/resource_list.csv',
-                          col_types = 'ccccd')
+if (!exists('app_title')) app_title = "single-cell RNA-seq data visualization"
+if (!exists('panel_name_1')) panel_name_1 = 'Gene expression value'
+if (!exists('panel_name_2')) panel_name_2 = 'Gene co-expression'
+if (!exists('panel_name_3')) panel_name_3 = 'Cluster signature genes'
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(theme = shinytheme('cerulean'),
@@ -29,7 +35,7 @@ shinyUI(fluidPage(theme = shinytheme('cerulean'),
             ),
 
   # Application title
-  titlePanel(ifelse(exists('app_title'), app_title, "single-cell RNA-seq data visualization")),
+  titlePanel(app_title),
 
   hr(),
 
@@ -50,7 +56,7 @@ shinyUI(fluidPage(theme = shinytheme('cerulean'),
                             step = 0.1),
                 hr(),
                 conditionalPanel(
-                    'input.tabset_main == "gene expression"',
+                    glue('input.tabset_main == "{panel_name_1}"'),
                     # checkboxInput(inputId = 'cb_label',
                     #               label = 'Label cluster center',
                     #               value = TRUE),
@@ -69,7 +75,7 @@ shinyUI(fluidPage(theme = shinytheme('cerulean'),
                               placeholder = 'Your awesome gene')
                 ),
                 conditionalPanel(
-                    'input.tabset_main == "co-expression"',
+                    glue('input.tabset_main == "{panel_name_2}"'),
                     selectizeInput(inputId = 'cluster_id',
                                    label = 'Use cluster',
                                    choices = NULL,
@@ -84,7 +90,7 @@ shinyUI(fluidPage(theme = shinytheme('cerulean'),
                               placeholder = 'Your awesome gene')
                 ),
                 conditionalPanel(
-                    'input.tabset_main == "signature"',
+                    glue('input.tabset_main == "{panel_name_3}"'),
                     selectizeInput(inputId = 'sig_cluster_1',
                                    label = 'Use cluster [*]',
                                    choices = '',
@@ -112,16 +118,16 @@ shinyUI(fluidPage(theme = shinytheme('cerulean'),
                 id = 'dat_panel',
                 tabsetPanel(id = 'tabset_main', type = 'tabs',
                             tabPanel(
-                                title = 'gene expression',
+                                title = panel_name_1,
                                 plotOutput('plot_gene_expr')
                             ),
                             tabPanel(
-                                title = 'co-expression',
+                                title = panel_name_2,
                                 # verbatimTextOutput('coefficient'),
                                 plotOutput('plot_gene_expr2')
                             ),
                             tabPanel(
-                                title = 'signature',
+                                title = panel_name_3,
                                 tags$p(id = 'warning_info'),
                                 DT::dataTableOutput('table_sig_gene')
                             )

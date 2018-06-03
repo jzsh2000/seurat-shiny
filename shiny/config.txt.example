@@ -1,1 +1,17 @@
 app_title = 'single-cell RNA-seq data visualization'
+
+# color for gene name validation: grey (empty) -- red (invalid) -- green (valid)
+color_primary = '#CCCCCC'
+color_error = '#FF0000'
+color_success = '#00FF00'
+
+# default resolution
+res_default = 0.8
+
+# plot view scale factor
+scale_factor_default = 0.7
+
+# panel names
+panel_name_1 = 'Gene expression value'
+panel_name_2 = 'Gene co-expression'
+panel_name_3 = 'Cluster signature genes'
