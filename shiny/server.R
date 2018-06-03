@@ -121,7 +121,11 @@ shinyServer(function(input, output, session) {
         # seurat t-SNE coordinates
         rdat_tsne_sr_full = NULL,
         rdat_tsne_sr = NULL,
-        resolution = NULL
+        resolution = NULL,
+
+        # re-cluster data
+        rdat_subset = NULL,
+        resolution_subset = NULL
     )
 
     get_sig_gene <- reactiveValues(table = NULL)
@@ -133,11 +137,18 @@ shinyServer(function(input, output, session) {
         }
     })
 
+    observeEvent(input$resolution_subset, {
+        req(dataset_info$resolution_subset)
+        if (input$resolution_subset >= 0.1 && input$resolution_subset <= 1.5) {
+            dataset_info$resolution_subset = input$resolution_subset
+        }
+    })
+
     update_resolution <- function(resolution) {
         res_name = glue('res.{resolution}')
         if (!is.null(dataset_info$rdat) &&
             !(res_name %in% colnames(dataset_info$rdat@meta.data))) {
-            print('update resolution...')
+            print(glue('update resolution to {resolution}...'))
             withProgress(
                 message = 'Find clusters using new reolution',
                 detail = 'This may take a while...',
@@ -147,6 +158,28 @@ shinyServer(function(input, output, session) {
                         dims.use = 1:15,
                         print.output = FALSE,
                         resolution = resolution
+                    )
+                    setProgress(value = 1)
+                }
+            )
+        }
+    }
+
+    update_resolution_subset <- function(resolution) {
+        res_name = glue('res.{resolution}')
+        if (!is.null(dataset_info$rdat_subset) &&
+            !(res_name %in% colnames(dataset_info$rdat_subset@meta.data))) {
+            print(glue('update resolution to {resolution}...'))
+            withProgress(
+                message = 'Find clusters using new reolution',
+                detail = 'This may take a while...',
+                value = 0, {
+                    dataset_info$rdat_subset = FindClusters(
+                        object = dataset_info$rdat_subset,
+                        dims.use = 1:15,
+                        print.output = FALSE,
+                        resolution = resolution,
+                        force.recalc = TRUE
                     )
                     setProgress(value = 1)
                 }
@@ -165,6 +198,8 @@ shinyServer(function(input, output, session) {
             dataset_info$rdat_tsne_sr_full = NULL
             dataset_info$rdat_tsne_sr = NULL
             dataset_info$resolution = NULL
+            dataset_info$rdat_subset = NULL
+            dataset_info$resolution_subset = NULL
             get_sig_gene$table = empty_sig_df
 
             updateSelectizeInput(session,
@@ -178,6 +213,7 @@ shinyServer(function(input, output, session) {
         } else {
             shinyjs::show(id = 'dat_config')
             shinyjs::show(id = 'dat_panel')
+            shinyjs::hide(id = 'resolution_subset')
 
             withProgress(message = 'Load seurat object',
                          detail = 'Locate RDS file path',
@@ -234,6 +270,8 @@ shinyServer(function(input, output, session) {
             dataset_info$rdat_tsne_sr_full = rdat_tsne_sr_full
             dataset_info$rdat_tsne_sr = rdat_tsne_sr
             dataset_info$resolution = default_resolution
+            dataset_info$rdat_subset = rdat
+            dataset_info$resolution_subset = default_resolution
             get_sig_gene$table = empty_sig_df
             runjs("document.getElementById('warning_info').innerHTML = ''")
         }
@@ -244,6 +282,17 @@ shinyServer(function(input, output, session) {
         res_name = glue('res.{dataset_info$resolution}')
         update_resolution(dataset_info$resolution)
         res_choices = as.character(sort(as.integer(unique(dataset_info$rdat@meta.data[[res_name]]))))
+
+        # multiple selection
+        updateSelectizeInput(session, 'cluster_id_subset',
+                             choices = res_choices)
+    })
+
+    observe(if (!is.null(dataset_info$resolution_subset) &&
+                !is.null(dataset_info$rdat_subset)) {
+        res_name = glue('res.{dataset_info$resolution_subset}')
+        update_resolution_subset(dataset_info$resolution_subset)
+        res_choices = as.character(sort(as.integer(unique(dataset_info$rdat_subset@meta.data[[res_name]]))))
 
         # multiple selection
         updateSelectizeInput(session, 'cluster_id',
@@ -334,9 +383,9 @@ shinyServer(function(input, output, session) {
     }) %>% debounce(1500)
 
     get_cluster_dat_cellranger <- reactive({
-        res_name = glue('res.{dataset_info$resolution}')
+        res_name = glue('res.{dataset_info$resolution_subset}')
         cluster_dat <- dataset_info$rdat_tsne_cr %>%
-            left_join(dataset_info$rdat@meta.data %>%
+            left_join(dataset_info$rdat_subset@meta.data %>%
                            rownames_to_column('Barcode') %>%
                            as_data_frame() %>%
                            dplyr::select(Barcode, one_of(res_name)),
@@ -351,10 +400,10 @@ shinyServer(function(input, output, session) {
     })
 
     get_cluster_dat_seurat <- reactive({
-        res_name = glue('res.{dataset_info$resolution}')
+        res_name = glue('res.{dataset_info$resolution_subset}')
         if (!input$cb_allpt) {
             cluster_dat <- dataset_info$rdat_tsne_sr %>%
-                left_join(dataset_info$rdat@meta.data %>%
+                left_join(dataset_info$rdat_subset@meta.data %>%
                               rownames_to_column('Barcode') %>%
                               as_data_frame() %>%
                               dplyr::select(Barcode, one_of(res_name)),
@@ -362,7 +411,7 @@ shinyServer(function(input, output, session) {
                 dplyr::rename_(cluster = res_name)
         } else {
             cluster_dat <- dataset_info$rdat_tsne_sr_full %>%
-                left_join(dataset_info$rdat@meta.data %>%
+                left_join(dataset_info$rdat_subset@meta.data %>%
                               rownames_to_column('Barcode') %>%
                               as_data_frame() %>%
                               dplyr::select(Barcode, one_of(res_name)),
@@ -407,12 +456,12 @@ shinyServer(function(input, output, session) {
     })
 
     output$plot_gene_expr <- renderPlot({
-        res_name = glue('res.{dataset_info$resolution}')
-        update_resolution(dataset_info$resolution)
+        res_name = glue('res.{dataset_info$resolution_subset}')
+        update_resolution(dataset_info$resolution_subset)
 
-        if (!is.null(dataset_info$rdat)) {
+        if (!is.null(dataset_info$rdat_subset)) {
             if (get_input_gene() != '' &&
-                (get_input_gene() %in% rownames(dataset_info$rdat@data))) {
+                (get_input_gene() %in% rownames(dataset_info$rdat_subset@data))) {
 
                 plot_1 <- get_tsne_plot()
                 if (input$cb_cellranger) {
@@ -425,7 +474,7 @@ shinyServer(function(input, output, session) {
 
                 plot_dat  %<>%
                     inner_join(
-                        enframe(dataset_info$rdat@data[get_input_gene(),], name = 'Barcode', value = 'expr'),
+                        enframe(dataset_info$rdat_subset@data[get_input_gene(),], name = 'Barcode', value = 'expr'),
                         by = 'Barcode'
                     )
 
@@ -450,11 +499,11 @@ shinyServer(function(input, output, session) {
                 gene_title = gene_name_title(gene_name,
                                                   species = dataset_info$species)
                 data.use = data.frame(FetchData(
-                    object = dataset_info$rdat,
+                    object = dataset_info$rdat_subset,
                     vars.all = gene_name,
                 ), check.names = FALSE)
                 colnames(data.use) = gene_title
-                ident.use = FetchData(dataset_info$rdat,
+                ident.use = FetchData(dataset_info$rdat_subset,
                                       vars.all = res_name)[,1]
                 # plot_3 <- Seurat::VlnPlot(dataset_info$rdat,
                 #                           group.by = res_name,
@@ -494,18 +543,18 @@ shinyServer(function(input, output, session) {
 
     output$plot_gene_expr2 <- renderPlot({
         res_name = glue('res.{dataset_info$resolution}')
-        if (!is.null(dataset_info$rdat) &&
+        if (!is.null(dataset_info$rdat_subset) &&
             get_input_gene1() != '' &&
-            (get_input_gene1() %in% rownames(dataset_info$rdat@data)) &&
+            (get_input_gene1() %in% rownames(dataset_info$rdat_subset@data)) &&
             get_input_gene2() != '' &&
-            (get_input_gene2() %in% rownames(dataset_info$rdat@data)) &&
+            (get_input_gene2() %in% rownames(dataset_info$rdat_subset@data)) &&
             get_input_gene1() != get_input_gene2()) {
 
-            valid_cells = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] %in% input$cluster_id]
+            valid_cells = dataset_info$rdat_subset@cell.names[dataset_info$rdat_subset@meta.data[[res_name]] %in% input$cluster_id]
 
             plot_dat <- inner_join(
-                enframe(dataset_info$rdat@data[get_input_gene1(),], name = 'Barcode', value = get_input_gene1()),
-                enframe(dataset_info$rdat@data[get_input_gene2(),], name = 'Barcode', value = get_input_gene2()),
+                enframe(dataset_info$rdat_subset@data[get_input_gene1(),], name = 'Barcode', value = get_input_gene1()),
+                enframe(dataset_info$rdat_subset@data[get_input_gene2(),], name = 'Barcode', value = get_input_gene2()),
                 by = 'Barcode'
             ) %>%
                 filter(Barcode %in% valid_cells)
@@ -536,8 +585,8 @@ shinyServer(function(input, output, session) {
         withProgress(message = 'Find marker gene',
                      detail = 'collect cell id in cluster',
                      value = 0, {
-            res_name = glue('res.{dataset_info$resolution}')
-            cell_1 = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] == input$sig_cluster_1]
+            res_name = glue('res.{dataset_info$resolution_subset}')
+            cell_1 = dataset_info$rdat_subset@cell.names[dataset_info$rdat_subset@meta.data[[res_name]] == input$sig_cluster_1]
 
             incProgress(amount = 0.2, message = 'run program')
             if (length(cell_1) <= 3) {
@@ -547,7 +596,7 @@ shinyServer(function(input, output, session) {
                 if (input$sig_cluster_2 == '(All other cells)') {
                     runjs("document.getElementById('warning_info').innerHTML = '<font color=blue>Everything OK!</font>'")
                     if (input$marker_pos == 'pos') {
-                        output_df = FindMarkers(dataset_info$rdat,
+                        output_df = FindMarkers(dataset_info$rdat_subset,
                                                 ident.1 = cell_1,
                                                 ident.2 = NULL,
                                                 test.use = 'roc',
@@ -555,7 +604,7 @@ shinyServer(function(input, output, session) {
                                                 only.pos = TRUE
                         )
                     } else {
-                        output_df = FindMarkers(dataset_info$rdat,
+                        output_df = FindMarkers(dataset_info$rdat_subset,
                                                 ident.1 = cell_1,
                                                 ident.2 = NULL,
                                                 test.use = 'roc',
@@ -565,7 +614,7 @@ shinyServer(function(input, output, session) {
                         output_df = subset(output_df, avg_diff < 0)
                     }
                 } else {
-                    cell_2 = rownames(dataset_info$rdat@meta.data)[dataset_info$rdat@meta.data[[res_name]] == input$sig_cluster_2]
+                    cell_2 = dataset_info$rdat_subset@cell.names[dataset_info$rdat_subset@meta.data[[res_name]] == input$sig_cluster_2]
                     if (length(cell_2) <= 3) {
                         runjs("document.getElementById('warning_info').innerHTML = '<font color=red>Warning: Cell group 2 has fewer than 3 cells</font>'")
                         output_df = empty_sig_df
@@ -573,7 +622,7 @@ shinyServer(function(input, output, session) {
                         runjs("document.getElementById('warning_info').innerHTML = '<font color=blue>Everything OK!</font>'")
                         if (input$marker_pos == 'pos') {
 
-                            output_df = FindMarkers(dataset_info$rdat,
+                            output_df = FindMarkers(dataset_info$rdat_subset,
                                                     ident.1 = cell_1,
                                                     ident.2 = cell_2,
                                                     test.use = 'roc',
@@ -582,7 +631,7 @@ shinyServer(function(input, output, session) {
                             )
                         } else {
                             runjs("document.getElementById('warning_info').innerHTML = '<font color=blue>Everything OK!</font>'")
-                            output_df = FindMarkers(dataset_info$rdat,
+                            output_df = FindMarkers(dataset_info$rdat_subset,
                                                     ident.1 = cell_2,
                                                     ident.2 = cell_1,
                                                     test.use = 'roc',
@@ -649,6 +698,35 @@ shinyServer(function(input, output, session) {
                                      inputId = 'dataset',
                                      selected = query[['dataset']])
             }
+        }
+    })
+
+    get_cluster_subset <- reactive({
+        input$cluster_id_subset
+    }) %>% debounce(2000)
+
+    observeEvent(get_cluster_subset(), {
+        if (length(get_cluster_subset()) > 0) {
+            updateCheckboxInput(session,
+                                inputId = 'cb_allpt',
+                                value = TRUE)
+            shinyjs::show('resolution_subset')
+
+            rdat = dataset_info$rdat
+            rdat_subset = SubsetData(
+                rdat,
+                cells.use = rdat@cell.names[rdat@meta.data[[glue('res.{dataset_info$resolution_subset}')]] %in% get_cluster_subset()]
+            )
+            rdat_subset = RunTSNE(
+                rdat_subset,
+                dims.use = 1:15,
+            )
+            rdat_subset@meta.data = rdat_subset@meta.data[,!str_detect(colnames(rdat_subset@meta.data), '^res\\.')]
+            dataset_info$rdat_subset = rdat_subset
+            # print(rdat_subset)
+        } else {
+            dataset_info$resolution_subset = dataset_info$resolution
+            shinyjs::hide('resolution_subset')
         }
     })
 })

@@ -72,7 +72,18 @@ shinyUI(fluidPage(theme = shinytheme('cerulean'),
                                   value = FALSE),
                     textInput(inputId = 'tx_gene',
                               label = 'Gene name',
-                              placeholder = 'Your awesome gene')
+                              placeholder = 'Your awesome gene'),
+                    hr(),
+                    selectizeInput(inputId = 'cluster_id_subset',
+                                   label = 'Use cluster',
+                                   choices = NULL,
+                                   selected = NULL,
+                                   multiple = TRUE
+                    ),
+                    sliderInput(inputId = 'resolution_subset',
+                                label = 'Cluster resolution',
+                                min = 0.1, max = 1.5, value = 0.8,
+                                step = 0.1)
                 ),
                 conditionalPanel(
                     glue('input.tabset_main == "{panel_name_2}"'),
