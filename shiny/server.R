@@ -713,15 +713,25 @@ shinyServer(function(input, output, session) {
             shinyjs::show('resolution_subset')
 
             rdat = dataset_info$rdat
-            rdat_subset = SubsetData(
-                rdat,
-                cells.use = rdat@cell.names[rdat@meta.data[[glue('res.{dataset_info$resolution_subset}')]] %in% get_cluster_subset()]
+            withProgress(
+                message = 'Create subset data',
+                detail = 'This may take a while...',
+                value = 0, {
+                    rdat_subset = SubsetData(
+                        rdat,
+                        cells.use = rdat@cell.names[rdat@meta.data[[glue('res.{dataset_info$resolution_subset}')]] %in% get_cluster_subset()]
+                    )
+                    incProgress(amount = 0.4, message = 'Run t-SNE on subset')
+                    rdat_subset = RunTSNE(
+                        rdat_subset,
+                        dims.use = 1:15,
+                    )
+                    incProgress(amount = 0.4, message = 'Generate metadata')
+                    rdat_subset@meta.data = rdat_subset@meta.data[,!str_detect(colnames(rdat_subset@meta.data), '^res\\.')]
+                    setProgress(value = 1, message = 'Finished!')
+                }
             )
-            rdat_subset = RunTSNE(
-                rdat_subset,
-                dims.use = 1:15,
-            )
-            rdat_subset@meta.data = rdat_subset@meta.data[,!str_detect(colnames(rdat_subset@meta.data), '^res\\.')]
+
             dataset_info$rdat_subset = rdat_subset
             # print(rdat_subset)
         } else {
