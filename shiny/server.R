@@ -115,6 +115,7 @@ shinyServer(function(input, output, session) {
 
     dataset_info <- reactiveValues(
         species = NULL,
+        name = NULL,
         rdat = NULL,
         # cellranger t-SNE coordinates
         rdat_tsne_cr = NULL,
@@ -193,6 +194,7 @@ shinyServer(function(input, output, session) {
             shinyjs::hide(id = 'dat_panel')
 
             dataset_info$species = NULL
+            dataset_info$name = NULL
             dataset_info$rdat = NULL
             dataset_info$rdat_tsne_cr = NULL
             dataset_info$rdat_tsne_sr_full = NULL
@@ -265,6 +267,7 @@ shinyServer(function(input, output, session) {
                          })
 
             dataset_info$species = resource$species
+            dataset_info$name = input$dataset
             dataset_info$rdat = rdat
             dataset_info$rdat_tsne_cr = rdat_tsne_cr
             dataset_info$rdat_tsne_sr_full = rdat_tsne_sr_full
@@ -452,7 +455,8 @@ shinyServer(function(input, output, session) {
             theme_bw() +
             theme(panel.grid.major = element_blank(),
                   panel.grid.minor = element_blank(),
-                  legend.position = "none")
+                  legend.position = "none") +
+            labs(title = dataset_info$name)
     })
 
     output$plot_gene_expr <- renderPlot({
