@@ -461,7 +461,7 @@ shinyServer(function(input, output, session) {
 
     output$plot_gene_expr <- renderPlot({
         res_name = glue('res.{dataset_info$resolution_subset}')
-        update_resolution(dataset_info$resolution_subset)
+        update_resolution_subset(dataset_info$resolution_subset)
 
         if (!is.null(dataset_info$rdat_subset)) {
             if (get_input_gene() != '' &&
