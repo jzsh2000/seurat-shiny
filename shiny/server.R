@@ -147,22 +147,30 @@ shinyServer(function(input, output, session) {
 
     update_resolution <- function(resolution) {
         res_name = glue('res.{resolution}')
-        if (!is.null(dataset_info$rdat) &&
-            !(res_name %in% colnames(dataset_info$rdat@meta.data))) {
-            print(glue('update resolution to {resolution}...'))
-            withProgress(
-                message = 'Find clusters using new reolution',
-                detail = 'This may take a while...',
-                value = 0, {
-                    dataset_info$rdat = FindClusters(
-                        object = dataset_info$rdat,
-                        dims.use = 1:15,
-                        print.output = FALSE,
-                        resolution = resolution
-                    )
-                    setProgress(value = 1)
-                }
-            )
+        if (!is.null(dataset_info$rdat)) {
+            if (!(res_name %in% colnames(dataset_info$rdat@meta.data))) {
+                print(glue('update resolution to {resolution}...'))
+                withProgress(
+                    message = 'Find clusters using new resolution',
+                    detail = 'This may take a while...',
+                    value = 0, {
+                        dataset_info$rdat = FindClusters(
+                            object = dataset_info$rdat,
+                            dims.use = 1:15,
+                            print.output = FALSE,
+                            resolution = resolution
+                        )
+                        setProgress(value = 1)
+                    }
+                )
+                updateSelectizeInput(session, inputId = 'cluster_id_subset',
+                                     selected = NULL)
+            }
+            dataset_info$resolution_subset = dataset_info$resolution
+            # updateCheckboxInput(session,
+            #                     inputId = 'cb_allpt',
+            #                     value = FALSE)
+            shinyjs::hide('resolution_subset')
         }
     }
 
@@ -170,9 +178,9 @@ shinyServer(function(input, output, session) {
         res_name = glue('res.{resolution}')
         if (!is.null(dataset_info$rdat_subset) &&
             !(res_name %in% colnames(dataset_info$rdat_subset@meta.data))) {
-            print(glue('update resolution to {resolution}...'))
+            print(glue('update subset resolution to {resolution}...'))
             withProgress(
-                message = 'Find clusters using new reolution',
+                message = 'Find clusters using new resolution',
                 detail = 'This may take a while...',
                 value = 0, {
                     dataset_info$rdat_subset = FindClusters(
@@ -387,6 +395,7 @@ shinyServer(function(input, output, session) {
 
     get_cluster_dat_cellranger <- reactive({
         res_name = glue('res.{dataset_info$resolution_subset}')
+        print(glue('cluster_dat_cellranger - {res_name}'))
         cluster_dat <- dataset_info$rdat_tsne_cr %>%
             left_join(dataset_info$rdat_subset@meta.data %>%
                            rownames_to_column('Barcode') %>%
@@ -404,6 +413,7 @@ shinyServer(function(input, output, session) {
 
     get_cluster_dat_seurat <- reactive({
         res_name = glue('res.{dataset_info$resolution_subset}')
+        print(glue('cluster_dat_seurat - {res_name}'))
         if (!input$cb_allpt) {
             cluster_dat <- dataset_info$rdat_tsne_sr %>%
                 left_join(dataset_info$rdat_subset@meta.data %>%
@@ -425,7 +435,7 @@ shinyServer(function(input, output, session) {
     })
 
     get_tsne_plot <- reactive({
-        update_resolution(dataset_info$resolution)
+        update_resolution_subset(dataset_info$resolution_subset)
         label_column = 'cluster'
         if (input$cb_showsize) {
             label_column = 'cluster_with_size'
@@ -738,9 +748,6 @@ shinyServer(function(input, output, session) {
 
             dataset_info$rdat_subset = rdat_subset
             # print(rdat_subset)
-        } else {
-            dataset_info$resolution_subset = dataset_info$resolution
-            shinyjs::hide('resolution_subset')
         }
     })
 })
