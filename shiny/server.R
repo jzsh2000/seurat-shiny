@@ -167,6 +167,7 @@ shinyServer(function(input, output, session) {
                                      selected = NULL)
             }
             dataset_info$resolution_subset = dataset_info$resolution
+            dataset_info$rdat_tsne_sr_subset = dataset_info$rdat_tsne_sr
             # updateCheckboxInput(session,
             #                     inputId = 'cb_allpt',
             #                     value = FALSE)
@@ -207,6 +208,7 @@ shinyServer(function(input, output, session) {
             dataset_info$rdat_tsne_cr = NULL
             dataset_info$rdat_tsne_sr_full = NULL
             dataset_info$rdat_tsne_sr = NULL
+            dataset_info$rdat_tsne_sr_subset = NULL
             dataset_info$resolution = NULL
             dataset_info$rdat_subset = NULL
             dataset_info$resolution_subset = NULL
@@ -280,6 +282,7 @@ shinyServer(function(input, output, session) {
             dataset_info$rdat_tsne_cr = rdat_tsne_cr
             dataset_info$rdat_tsne_sr_full = rdat_tsne_sr_full
             dataset_info$rdat_tsne_sr = rdat_tsne_sr
+            dataset_info$rdat_tsne_sr_subset = rdat_tsne_sr
             dataset_info$resolution = default_resolution
             dataset_info$rdat_subset = rdat
             dataset_info$resolution_subset = default_resolution
@@ -395,7 +398,7 @@ shinyServer(function(input, output, session) {
 
     get_cluster_dat_cellranger <- reactive({
         res_name = glue('res.{dataset_info$resolution_subset}')
-        print(glue('cluster_dat_cellranger - {res_name}'))
+        # print(glue('cluster_dat_cellranger - {res_name}'))
         cluster_dat <- dataset_info$rdat_tsne_cr %>%
             left_join(dataset_info$rdat_subset@meta.data %>%
                            rownames_to_column('Barcode') %>%
@@ -413,24 +416,43 @@ shinyServer(function(input, output, session) {
 
     get_cluster_dat_seurat <- reactive({
         res_name = glue('res.{dataset_info$resolution_subset}')
-        print(glue('cluster_dat_seurat - {res_name}'))
-        if (!input$cb_allpt) {
-            cluster_dat <- dataset_info$rdat_tsne_sr %>%
+        # print(glue('cluster_dat_seurat - {res_name}'))
+
+        if (input$cb_subset) {
+            res_name = glue('res.{dataset_info$resolution_subset}')
+            if (input$cb_allpt) {
+                cluster_dat <- dataset_info$rdat_tsne_sr_full
+            } else {
+                cluster_dat <- dataset_info$rdat_tsne_sr_subset
+            }
+            cluster_dat %<>%
                 left_join(dataset_info$rdat_subset@meta.data %>%
                               rownames_to_column('Barcode') %>%
                               as_data_frame() %>%
                               dplyr::select(Barcode, one_of(res_name)),
-                          by = 'Barcode') %>%
-                dplyr::rename_(cluster = res_name)
+                          by = 'Barcode')
         } else {
-            cluster_dat <- dataset_info$rdat_tsne_sr_full %>%
-                left_join(dataset_info$rdat_subset@meta.data %>%
+            res_name = glue('res.{dataset_info$resolution}')
+            if (input$cb_allpt) {
+                cluster_dat <- dataset_info$rdat_tsne_sr_full
+            } else {
+                cluster_dat <- dataset_info$rdat_tsne_sr
+            }
+            cluster_dat <- dataset_info$rdat_tsne_sr %>%
+                left_join(dataset_info$rdat@meta.data %>%
                               rownames_to_column('Barcode') %>%
                               as_data_frame() %>%
                               dplyr::select(Barcode, one_of(res_name)),
-                          by = 'Barcode') %>%
-                dplyr::rename_(cluster = res_name)
+                          by = 'Barcode')
         }
+        cluster_dat %<>%
+            dplyr::rename_(cluster = res_name)
+
+        if (!input$cb_allpt) {
+            cluster_dat %<>%
+                dplyr::filter(!is.na(cluster))
+        }
+
         cluster_dat
     })
 
@@ -721,9 +743,9 @@ shinyServer(function(input, output, session) {
 
     observeEvent(get_cluster_subset(), {
         if (length(get_cluster_subset()) > 0) {
-            updateCheckboxInput(session,
-                                inputId = 'cb_allpt',
-                                value = TRUE)
+            # updateCheckboxInput(session,
+            #                     inputId = 'cb_allpt',
+            #                     value = TRUE)
             shinyjs::show('resolution_subset')
 
             rdat = dataset_info$rdat
@@ -747,7 +769,27 @@ shinyServer(function(input, output, session) {
             )
 
             dataset_info$rdat_subset = rdat_subset
+            dataset_info$rdat_tsne_sr_subset = GetDimReduction(rdat_subset, reduction.type = 'tsne', slot = 'cell.embeddings') %>%
+                as.data.frame() %>%
+                rownames_to_column(var = 'Barcode') %>%
+                as_data_frame()
+
             # print(rdat_subset)
+        } else {
+            # print('hello, world!')
+            shinyjs::hide('resolution_subset')
+            dataset_info$rdat_tsne_sr_subset = dataset_info$rdat_tsne_sr
+        }
+    })
+
+    observeEvent(input$cb_subset, {
+        if (input$cb_subset) {
+            shinyjs::show('cluster_id_subset')
+            shinyjs::show('resolution_subset')
+        } else {
+            shinyjs::hide('cluster_id_subset')
+            shinyjs::hide('resolution_subset')
+            # dataset_info$rdat_tsne_sr_subset = dataset_info$rdat_tsne_sr
         }
     })
 })
