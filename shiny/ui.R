@@ -26,6 +26,11 @@ if (!exists('app_title')) app_title = "single-cell RNA-seq data visualization"
 if (!exists('panel_name_1')) panel_name_1 = 'Gene expression value'
 if (!exists('panel_name_2')) panel_name_2 = 'Gene co-expression'
 if (!exists('panel_name_3')) panel_name_3 = 'Cluster signature genes'
+if (file.exists('www/About.Rmd')) {
+    about_page_path = 'www/About.Rmd'
+} else {
+    about_page_path = 'www/About.Rmd.template'
+}
 
 # Define UI
 shinyUI(navbarPage(
@@ -45,7 +50,7 @@ shinyUI(navbarPage(
       column(1),
       column(
           width = 10,
-          wellPanel(includeMarkdown("www/About.Rmd"))
+          wellPanel(includeMarkdown(about_page_path))
       ),
       column(1)
   ),
