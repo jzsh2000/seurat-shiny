@@ -438,7 +438,7 @@ shinyServer(function(input, output, session) {
             } else {
                 cluster_dat <- dataset_info$rdat_tsne_sr
             }
-            cluster_dat <- dataset_info$rdat_tsne_sr %>%
+            cluster_dat %<>%
                 left_join(dataset_info$rdat@meta.data %>%
                               rownames_to_column('Barcode') %>%
                               as_data_frame() %>%

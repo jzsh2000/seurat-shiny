@@ -26,8 +26,8 @@ if (!exists('app_title')) app_title = "single-cell RNA-seq data visualization"
 if (!exists('panel_name_1')) panel_name_1 = 'Gene expression value'
 if (!exists('panel_name_2')) panel_name_2 = 'Gene co-expression'
 if (!exists('panel_name_3')) panel_name_3 = 'Cluster signature genes'
-if (file.exists('www/About.Rmd')) {
-    about_page_path = 'www/About.Rmd'
+if (file.exists('www/About.md')) {
+    about_page_path = 'www/About.md'
 } else {
     about_page_path = 'www/About.Rmd.template'
 }
