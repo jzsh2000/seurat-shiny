@@ -37,6 +37,7 @@ shinyUI(navbarPage(
 
   theme = shinytheme('cerulean'),
   title = app_title,
+  position = 'fixed-top',
   id = 'dc_sc',
   header = tags$head(tags$link(rel = "shortcut icon",
                                href = "dc.ico"),
