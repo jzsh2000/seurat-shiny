@@ -24,8 +24,8 @@ if (file.exists('config.txt')) {
 }
 if (!exists('app_title')) app_title = "single-cell RNA-seq data visualization"
 if (!exists('panel_name_1')) panel_name_1 = 'Gene expression value'
-if (!exists('panel_name_2')) panel_name_2 = 'Gene co-expression'
-if (!exists('panel_name_3')) panel_name_3 = 'Cluster signature genes'
+if (!exists('panel_name_2')) panel_name_2 = 'Cluster signature genes'
+if (!exists('panel_name_3')) panel_name_3 = 'Gene co-expression'
 if (file.exists('www/About.Rmd')) {
     about_page_path = 'www/About.Rmd'
 } else {
@@ -157,12 +157,12 @@ shinyUI(navbarPage(
                                       plotOutput('plot_gene_expr')
                                   ),
                                   tabPanel(
-                                      title = panel_name_3,
+                                      title = panel_name_2,
                                       tags$p(id = 'warning_info'),
                                       DT::dataTableOutput('table_sig_gene')
                                   ),
                                   tabPanel(
-                                      title = panel_name_2,
+                                      title = panel_name_3,
                                       # verbatimTextOutput('coefficient'),
                                       plotOutput('plot_gene_expr2')
                                   )
