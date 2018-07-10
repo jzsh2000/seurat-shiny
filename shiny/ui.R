@@ -39,6 +39,7 @@ shinyUI(navbarPage(
   title = app_title,
   position = 'fixed-top',
   id = 'dc_sc',
+  collapsible = TRUE,
   header = tags$head(tags$link(rel = "shortcut icon",
                                href = "dc.ico"),
                      tags$link(rel = "stylesheet",
