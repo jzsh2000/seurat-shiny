@@ -20,13 +20,14 @@ library(glue)
 
 if (file.exists('config.txt')) {
     source('config.txt')
+    if (!exists('res_default')) res_default = 0.8
+    if (!exists('scale_factor_default')) scale_factor_default = 0.7
+    if (!exists('color_primary')) color_primary = '#CCCCCC'
+    if (!exists('color_error')) color_error = '#FF0000'
+    if (!exists('color_success')) color_success = '#00FF00'
+} else {
+    source('config.txt.template')
 }
-
-if (!exists('res_default')) res_default = 0.8
-if (!exists('scale_factor_default')) scale_factor_default = 0.7
-if (!exists('color_primary')) color_primary = '#CCCCCC'
-if (!exists('color_error')) color_error = '#FF0000'
-if (!exists('color_success')) color_success = '#00FF00'
 
 ## ---------- load
 
