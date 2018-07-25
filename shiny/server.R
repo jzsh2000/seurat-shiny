@@ -124,6 +124,7 @@ shinyServer(function(input, output, session) {
         rdat_tsne_sr_full = NULL,
         rdat_tsne_sr = NULL,
         resolution = NULL,
+        image_name = '',
 
         # re-cluster data
         rdat_subset = NULL,
@@ -287,6 +288,7 @@ shinyServer(function(input, output, session) {
             dataset_info$resolution = default_resolution
             dataset_info$rdat_subset = rdat
             dataset_info$resolution_subset = default_resolution
+            dataset_info$image_name = ''
             get_sig_gene$table = empty_sig_df
             runjs("document.getElementById('warning_info').innerHTML = ''")
         }
@@ -566,12 +568,14 @@ shinyServer(function(input, output, session) {
                     remove.legend = FALSE
                 )
 
+                dataset_info$image_name = glue('{dataset_info$name}_{gene_name}.pdf')
                 plot_grid(
                     plot_grid(plot_1, plot_2, align = 'h'),
                     plot_3, ncol = 1,
                     rel_heights = c(3, 2)
                 )
             } else {
+                dataset_info$image_name = glue('{dataset_info$name}.pdf')
                 get_tsne_plot()
             }
         }
@@ -799,7 +803,9 @@ shinyServer(function(input, output, session) {
     })
 
     output$d_img <- downloadHandler(
-        filename = 'tsne.pdf',
+        filename = function() {
+            dataset_info$image_name
+        },
         content = function(file) {
             ggsave(filename = file, plot = get_gene_expr_plot(),
                    width = 9, height = 9)
