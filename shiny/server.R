@@ -492,7 +492,7 @@ shinyServer(function(input, output, session) {
             labs(title = dataset_info$name)
     })
 
-    output$plot_gene_expr <- renderPlot({
+    get_gene_expr_plot <- reactive({
         res_name = glue('res.{dataset_info$resolution_subset}')
         update_resolution_subset(dataset_info$resolution_subset)
 
@@ -534,7 +534,7 @@ shinyServer(function(input, output, session) {
 
                 gene_name = get_input_gene()
                 gene_title = gene_name_title(gene_name,
-                                                  species = dataset_info$species)
+                                             species = dataset_info$species)
                 data.use = data.frame(FetchData(
                     object = dataset_info$rdat_subset,
                     vars.all = gene_name,
@@ -575,6 +575,10 @@ shinyServer(function(input, output, session) {
                 get_tsne_plot()
             }
         }
+    })
+
+    output$plot_gene_expr <- renderPlot({
+        get_gene_expr_plot()
     # }, width = 800, height = 600)
     }, height = plot_height_func(scale_factor_default))
 
@@ -793,5 +797,13 @@ shinyServer(function(input, output, session) {
             # dataset_info$rdat_tsne_sr_subset = dataset_info$rdat_tsne_sr
         }
     })
+
+    output$d_img <- downloadHandler(
+        filename = 'tsne.pdf',
+        content = function(file) {
+            ggsave(filename = file, plot = get_gene_expr_plot(),
+                   width = 9, height = 9)
+        }
+    )
 })
 

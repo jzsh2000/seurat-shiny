@@ -83,18 +83,31 @@ shinyUI(navbarPage(
                           #               label = 'Label cluster center',
                           #               value = TRUE),
                           #
-                          checkboxInput(inputId = 'cb_cellranger',
-                                        label = 'Use original t-SNE',
-                                        value = FALSE),
-                          checkboxInput(inputId = 'cb_allpt',
-                                        label = 'Show all cells',
-                                        value = FALSE),
-                          checkboxInput(inputId = 'cb_showsize',
-                                        label = 'Show cluster size',
-                                        value = FALSE),
-                          checkboxInput(inputId = 'cb_subset',
-                                        label = 'Use subset cluster',
-                                        value = FALSE),
+                          fluidRow(
+                              column(
+                                  width = 6,
+
+                                  checkboxInput(inputId = 'cb_cellranger',
+                                                label = 'Use original t-SNE',
+                                                value = FALSE),
+                                  checkboxInput(inputId = 'cb_allpt',
+                                                label = 'Show all cells',
+                                                value = FALSE),
+                                  checkboxInput(inputId = 'cb_showsize',
+                                                label = 'Show cluster size',
+                                                value = FALSE),
+                                  checkboxInput(inputId = 'cb_subset',
+                                                label = 'Use subset cluster',
+                                                value = FALSE)
+                              ),
+                              column(
+                                  width = 6,
+                                  downloadButton(
+                                      'd_img',
+                                      label = 'Download PDF image'
+                                  )
+                              )
+                          ),
                           textInput(inputId = 'tx_gene',
                                     label = 'Gene name',
                                     placeholder = 'Your awesome gene'),
