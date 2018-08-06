@@ -154,7 +154,8 @@ shinyUI(navbarPage(
                                        inline = TRUE,
                                        choices = c('positive' = 'pos',
                                                    'negative' = 'neg'))
-                      )
+                      ),
+                      textOutput(outputId = 'dat_info_text')
                   )
 
               )

@@ -125,6 +125,7 @@ shinyServer(function(input, output, session) {
         rdat_tsne_sr = NULL,
         resolution = NULL,
         image_name = '',
+        info_text = '',
 
         # re-cluster data
         rdat_subset = NULL,
@@ -214,6 +215,7 @@ shinyServer(function(input, output, session) {
             dataset_info$resolution = NULL
             dataset_info$rdat_subset = NULL
             dataset_info$resolution_subset = NULL
+            dataset_info$info_text = ''
             get_sig_gene$table = empty_sig_df
 
             updateSelectizeInput(session,
@@ -289,6 +291,7 @@ shinyServer(function(input, output, session) {
             dataset_info$rdat_subset = rdat
             dataset_info$resolution_subset = default_resolution
             dataset_info$image_name = ''
+            dataset_info$info_text = glue('{dim(rdat@data)[1]} genes across {dim(rdat@data)[2]} samples')
             get_sig_gene$table = empty_sig_df
             runjs("document.getElementById('warning_info').innerHTML = ''")
         }
@@ -773,6 +776,7 @@ shinyServer(function(input, output, session) {
                     )
                     incProgress(amount = 0.4, message = 'Generate metadata')
                     rdat_subset@meta.data = rdat_subset@meta.data[,!str_detect(colnames(rdat_subset@meta.data), '^res\\.')]
+                    dataset_info$info_text = glue('{dim(rdat_subset@data)[1]} genes across {dim(rdat_subset@data)[2]} samples')
                     setProgress(value = 1, message = 'Finished!')
                 }
             )
@@ -811,5 +815,9 @@ shinyServer(function(input, output, session) {
                    width = 9, height = 9)
         }
     )
+
+    output$dat_info_text <- renderText({
+        dataset_info$info_text
+    })
 })
 
