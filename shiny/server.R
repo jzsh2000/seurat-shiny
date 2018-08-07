@@ -481,8 +481,8 @@ shinyServer(function(input, output, session) {
             scale_color_discrete(na.value = 'lightgrey') +
             geom_text(plot_dat %>%
                           group_by(cluster) %>%
-                          summarise(tSNE_1 = mean(tSNE_1),
-                                    tSNE_2 = mean(tSNE_2),
+                          summarise(tSNE_1 = median(tSNE_1),
+                                    tSNE_2 = median(tSNE_2),
                                     cluster_size = n()) %>%
                           mutate(cluster_with_size = glue('Cluster {cluster} ({cluster_size})')),
                       mapping = aes_string(x = 'tSNE_1', y = 'tSNE_2',
