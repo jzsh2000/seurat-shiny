@@ -819,5 +819,10 @@ shinyServer(function(input, output, session) {
     output$dat_info_text <- renderText({
         dataset_info$info_text
     })
+
+    output$plot_data_quality <- renderPlot({
+        req(dataset_info$rdat)
+        VlnPlot(dat, c('nUMI', 'nGene'), group.by = 'orig.ident')
+    })
 })
 
