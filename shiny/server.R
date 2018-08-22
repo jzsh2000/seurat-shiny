@@ -770,10 +770,12 @@ shinyServer(function(input, output, session) {
                         cells.use = rdat@cell.names[rdat@meta.data[[glue('res.{dataset_info$resolution_subset}')]] %in% get_cluster_subset()]
                     )
                     incProgress(amount = 0.4, message = 'Run t-SNE on subset')
-                    rdat_subset = RunTSNE(
-                        rdat_subset,
-                        dims.use = 1:15,
-                    )
+                    if (input$cb_tsne_rec) {
+                        rdat_subset = RunTSNE(
+                            rdat_subset,
+                            dims.use = 1:15,
+                        )
+                    }
                     incProgress(amount = 0.4, message = 'Generate metadata')
                     rdat_subset@meta.data = rdat_subset@meta.data[,!str_detect(colnames(rdat_subset@meta.data), '^res\\.')]
                     dataset_info$info_text = glue('{dim(rdat_subset@data)[1]} genes across {dim(rdat_subset@data)[2]} samples')
@@ -798,9 +800,11 @@ shinyServer(function(input, output, session) {
     observeEvent(input$cb_subset, {
         if (input$cb_subset) {
             shinyjs::show('cluster_id_subset')
+            shinyjs::show('cb_tsne_rec')
             shinyjs::show('resolution_subset')
         } else {
             shinyjs::hide('cluster_id_subset')
+            shinyjs::hide('cb_tsne_rec')
             shinyjs::hide('resolution_subset')
             # dataset_info$rdat_tsne_sr_subset = dataset_info$rdat_tsne_sr
         }

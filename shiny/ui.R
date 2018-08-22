@@ -119,6 +119,9 @@ shinyUI(navbarPage(
                                          selected = NULL,
                                          multiple = TRUE
                           ),
+                          checkboxInput(inputId = 'cb_tsne_rec',
+                                        label = 'Recalculate t-SNE',
+                                        value = FALSE),
                           sliderInput(inputId = 'resolution_subset',
                                       label = 'Cluster resolution',
                                       min = 0.1, max = 1.5, value = 0.8,
