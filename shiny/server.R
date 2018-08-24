@@ -243,7 +243,7 @@ shinyServer(function(input, output, session) {
 
                              rdat_tsne_cr = read_csv(file.path('data', resource$data_dir, 'projection.csv'), col_types = 'cdd') %>%
                                  mutate(Barcode = str_extract(Barcode, '^[^-]+')) %>%
-                                 rename(tSNE_1 = `TSNE-1`, tSNE_2 = `TSNE-2`)
+                                 dplyr::rename(tSNE_1 = `TSNE-1`, tSNE_2 = `TSNE-2`)
 
                              projection_rds_file = file.path('data', resource$data_dir, 'projection.rds')
 
@@ -826,7 +826,7 @@ shinyServer(function(input, output, session) {
 
     output$plot_data_quality <- renderPlot({
         req(dataset_info$rdat)
-        VlnPlot(dat, c('nUMI', 'nGene'), group.by = 'orig.ident')
+        VlnPlot(dataset_info$rdat, c('nUMI', 'nGene'), group.by = 'orig.ident')
     })
 })
 
