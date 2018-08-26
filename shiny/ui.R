@@ -129,21 +129,6 @@ shinyUI(navbarPage(
                       ),
                       conditionalPanel(
                           glue('input.tabset_main == "{panel_name_2}"'),
-                          selectizeInput(inputId = 'cluster_id',
-                                         label = 'Use cluster',
-                                         choices = NULL,
-                                         selected = NULL,
-                                         multiple = TRUE
-                          ),
-                          textInput(inputId = 'tx_gene1',
-                                    label = 'Gene name #1 [*]',
-                                    placeholder = 'Your awesome gene'),
-                          textInput(inputId = 'tx_gene2',
-                                    label = 'Gene name #2 [*]',
-                                    placeholder = 'Your awesome gene')
-                      ),
-                      conditionalPanel(
-                          glue('input.tabset_main == "{panel_name_3}"'),
                           selectizeInput(inputId = 'sig_cluster_1',
                                          label = 'Use cluster [*]',
                                          choices = '',
@@ -158,6 +143,21 @@ shinyUI(navbarPage(
                                        inline = TRUE,
                                        choices = c('positive' = 'pos',
                                                    'negative' = 'neg'))
+                      ),
+                      conditionalPanel(
+                          glue('input.tabset_main == "{panel_name_3}"'),
+                          selectizeInput(inputId = 'cluster_id',
+                                         label = 'Use cluster',
+                                         choices = NULL,
+                                         selected = NULL,
+                                         multiple = TRUE
+                          ),
+                          textInput(inputId = 'tx_gene1',
+                                    label = 'Gene name #1 [*]',
+                                    placeholder = 'Your awesome gene'),
+                          textInput(inputId = 'tx_gene2',
+                                    label = 'Gene name #2 [*]',
+                                    placeholder = 'Your awesome gene')
                       ),
                       textOutput(outputId = 'dat_info_text')
                   )
