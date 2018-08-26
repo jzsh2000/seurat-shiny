@@ -806,7 +806,9 @@ shinyServer(function(input, output, session) {
             shinyjs::hide('cluster_id_subset')
             shinyjs::hide('cb_tsne_rec')
             shinyjs::hide('resolution_subset')
-            # dataset_info$rdat_tsne_sr_subset = dataset_info$rdat_tsne_sr
+            dataset_info$rdat_subset = dataset_info$rdat
+            dataset_info$rdat_tsne_sr_subset = dataset_info$rdat_tsne_sr
+            updateSelectizeInput(session = session, inputId = 'cluster_id_subset', selected = NULL)
         }
     })
 
