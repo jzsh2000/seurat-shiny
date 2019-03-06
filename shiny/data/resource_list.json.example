@@ -1,0 +1,22 @@
+[
+    {
+        "label": "bl1",
+        "description": "[BL1] mouse blood",
+        "species": "mouse",
+        "dims.use": 12,
+        "resolution": 0.3,
+        "subsets": [
+            {
+                "label": "bl1_dc",
+                "description": "[BL1_DC] mouse blood DC"
+            }
+        ]
+    },
+    {
+        "label": "sp2",
+        "description": "[SP2] mouse spleen,mouse",
+        "species": "mouse",
+        "dims.use": 12,
+        "resolution": 0.6
+    }
+]
