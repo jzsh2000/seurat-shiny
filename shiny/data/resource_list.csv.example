@@ -1,3 +1,0 @@
-label,description,species,data_dir,default_resolution
-bl1,[BL1] mouse blood,mouse,bl1,0.3
-sp2,[SP2] mouse spleen,mouse,sp2,0.6
