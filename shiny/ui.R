@@ -101,7 +101,7 @@ shinyUI(navbarPage(
                                           label = 'Show all cells',
                                           value = FALSE),
                             selectizeInput(inputId = 'cluster_id_subset',
-                                           label = 'Use cluster',
+                                           label = 'Choose cluster ID',
                                            choices = NULL,
                                            selected = NULL,
                                            multiple = TRUE

@@ -532,71 +532,68 @@ shinyServer(function(input, output, session) {
         input$cluster_id_subset
     }) %>% debounce(2000)
 
-    observeEvent(get_cluster_subset(), {
-        if (length(get_cluster_subset()) > 0) {
-            shinyjs::show('cb_allpt')
-            shinyjs::show('resolution_subset')
+    observe(if (is.null(input$cluster_id_subset)) {
+        shinyjs::enable(id = 'resolution')
 
-            withProgress(
-                message = 'Create new dataset using selected clusters',
-                detail = 'Make a copy of the original data',
-                value = 0, {
-                    rdat_subset <- SetAllIdent(
-                        dataset_info$rdat,
-                        id = paste0('res.', input$resolution)
-                    )
-                    incProgress(
-                        amount = 0.2,
-                        message = 'Remove unused cells'
-                    )
-                    rdat_subset = SubsetData(
-                        rdat_subset,
-                        ident.use = get_cluster_subset(),
-                        subset.raw = TRUE
-                    )
-                    incProgress(
-                        amount = 0.3,
-                        message = 'Clean invalid metadata'
-                    )
-                    rdat_subset@meta.data = rdat_subset@meta.data[,!str_detect(colnames(rdat_subset@meta.data), '^res\\.')]
-                    dataset_info$info_text = get_dataset_info(rdat_subset)
-                    incProgress(
-                        amount = 0.1,
-                        message = 'Find clusters on subset'
-                    )
-                    rdat_subset = FindClusters(
-                        rdat_subset,
-                        dims.use = 1:dataset_info$dims,
-                        resolution = res_default,
-                        force.recalc = TRUE,
-                        print.output = FALSE
-                    )
-                    setProgress(value = 1, message = 'Finished!')
-                }
-            )
-
-            dataset_info$rdat_subset = rdat_subset
-            dataset_info$dims_subset = dataset_info$dims
-            dataset_info$reso_subset = res_default
-
-            # print(rdat_subset)
-        } else {
-            shinyjs::hide('cb_allpt')
-            shinyjs::hide('resolution_subset')
-
-            dataset_info$rdat_subset = NULL
-            dataset_info$dims_subset = NULL
-            dataset_info$reso_subset = NULL
+        dataset_info$rdat_subset = NULL
+        dataset_info$dims_subset = NULL
+        dataset_info$reso_subset = NULL
+        if (!is.null(dataset_info$rdat)) {
             dataset_info$info_text = get_dataset_info(dataset_info$rdat)
         }
     })
 
+    observeEvent(get_cluster_subset(), {
+        shinyjs::disable(id = 'resolution')
+
+        withProgress(
+            message = 'Create new dataset using selected clusters',
+            detail = 'Make a copy of the original data',
+            value = 0, {
+                rdat_subset <- SetAllIdent(
+                    dataset_info$rdat,
+                    id = paste0('res.', input$resolution)
+                )
+                incProgress(
+                    amount = 0.2,
+                    message = 'Remove unused cells'
+                )
+                rdat_subset = SubsetData(
+                    rdat_subset,
+                    ident.use = get_cluster_subset(),
+                    subset.raw = TRUE
+                )
+                incProgress(
+                    amount = 0.3,
+                    message = 'Clean invalid metadata'
+                )
+                rdat_subset@meta.data = rdat_subset@meta.data[,!str_detect(colnames(rdat_subset@meta.data), '^res\\.')]
+                dataset_info$info_text = get_dataset_info(rdat_subset)
+                incProgress(
+                    amount = 0.1,
+                    message = 'Find clusters on subset'
+                )
+                rdat_subset = FindClusters(
+                    rdat_subset,
+                    dims.use = 1:dataset_info$dims,
+                    resolution = res_default,
+                    force.recalc = TRUE,
+                    print.output = FALSE
+                )
+                setProgress(value = 1, message = 'Finished!')
+            }
+        )
+
+        dataset_info$rdat_subset = rdat_subset
+        dataset_info$dims_subset = dataset_info$dims
+        dataset_info$reso_subset = res_default
+    })
+
     observeEvent(input$cb_subset, {
         if (input$cb_subset) {
-            shinyjs::hide(id = 'cb_allpt')
+            shinyjs::show(id = 'cb_allpt')
             shinyjs::show(id = 'cluster_id_subset')
-            shinyjs::hide(id = 'resolution_subset')
-            shinyjs::disable(id = 'resolution')
+            shinyjs::show(id = 'resolution_subset')
         } else {
             shinyjs::hide('cb_allpt')
             shinyjs::hide('cluster_id_subset')
