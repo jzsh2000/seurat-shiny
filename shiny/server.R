@@ -164,16 +164,12 @@ shinyServer(function(input, output, session) {
     }
 
     dataset_info <- reactiveValues(
-        species = NULL,
-        name = NULL,
+        resource = NULL,
         rdat = NULL,
-        dims = NULL,
-        resolution = NULL,
 
-        # re-clustered data
+        # subset data
+        resource_subset = NULL,
         rdat_subset = NULL,
-        dims_subset = NULL,
-        resolution_subset = NULL,
 
         # other tmp data
         img_name = '',
@@ -186,14 +182,10 @@ shinyServer(function(input, output, session) {
             shinyjs::hide(id = 'dat_config')
             shinyjs::hide(id = 'dat_panel')
 
-            dataset_info$species = NULL
-            dataset_info$name = NULL
+            dataset_info$resource = NULL
             dataset_info$rdat = NULL
-            dataset_info$dims = NULL
-            dataset_info$reso = NULL
+            dataset_info$resource_subset = NULL
             dataset_info$rdat_subset = NULL
-            dataset_info$dims_subset = NULL
-            dataset_info$reso_subset = NULL
             dataset_info$info_text = ''
             dataset_info$img_name = ''
             dataset_info$deg_table = NULL
@@ -222,6 +214,15 @@ shinyServer(function(input, output, session) {
                         map_chr(resource.list, ~.$label)
                     )
                     resource = resource.list[[resource.id]]
+                    if (is.null(resource$resolution)) {
+                        resource$resolution = res_default
+                    }
+                    if (is.null(resource$dims.use)) {
+                        resource$dims.use = 1:dims_default
+                    }
+                    if (is.null(resource$species)) {
+                        resource$species = species_default
+                    }
                     incProgress(0.1, message = 'Read RDS file')
 
                     rdat = read_rds(
@@ -231,7 +232,7 @@ shinyServer(function(input, output, session) {
                             glue('{input$dataset}.rds')
                         )
                     )
-                    incProgress(0.8, message = 'Get resolution list')
+                    incProgress(0.7, message = 'Get resolution list')
 
                     if ('resolution' %in% names(resource)) {
                         cluster.res = round(
@@ -248,17 +249,29 @@ shinyServer(function(input, output, session) {
                         cluster.res = 0.8
                     }
 
+                    incProgress(0.1, message = 'Load pre-defined subsets')
+                    if (!is.null(resource$subset)) {
+                        updateSelectizeInput(
+                            session = session,
+                            inputId = 'cb_subset',
+                            choices = c(
+                                '(None)' = 'none',
+                                'Custom' = 'custom',
+                                set_names(
+                                    map_chr(resource$subset, ~.$label),
+                                    map_chr(resource$subset, ~.$description)
+                                )
+                            )
+                        )
+                    }
+
                     setProgress(value = 1, message = 'Finish!')
                 })
 
-            dataset_info$species = resource$species
-            dataset_info$name = resource$label
+            dataset_info$resource = resource
             dataset_info$rdat = rdat
-            dataset_info$dims = resource$dims
-            dataset_info$reso = cluster.res
+            dataset_info$resource_subset = NULL
             dataset_info$rdat_subset = NULL
-            dataset_info$dims_subset = NULL
-            dataset_info$reso_subset = NULL
             dataset_info$img_name = ''
             dataset_info$info_text = get_dataset_info(rdat)
             dataset_info$deg_table = sig.df.empty
@@ -278,7 +291,7 @@ shinyServer(function(input, output, session) {
                 value = 0, {
                     dataset_info$rdat_subset = FindClusters(
                         object = dataset_info$rdat_subset,
-                        dims.use = 1:dataset_info$dims_subset,
+                        dims.use = 1:dataset_info$resource_subset$dims.use,
                         print.output = FALSE,
                         resolution = res,
                         force.recalc = TRUE
@@ -302,7 +315,7 @@ shinyServer(function(input, output, session) {
                 runjs(glue("document.getElementById('tx_gene').style.borderColor='{color_success}'"))
             } else {
                 input_gene = gene_name_std(input$tx_gene,
-                                           dataset_info$species,
+                                           dataset_info$resource$species,
                                            rownames(dataset_info$rdat@data))
                 if (input_gene == '') {
                     runjs(glue("document.getElementById('tx_gene').style.borderColor='{color_error}'"))
@@ -315,13 +328,13 @@ shinyServer(function(input, output, session) {
     }) %>% debounce(1500)
 
     get_cluster_dat <- reactive({
-        if (input$cb_subset && (!is.null(dataset_info$rdat_subset))) {
+        if (input$cb_subset != 'none' && (!is.null(dataset_info$rdat_subset))) {
             res_str = paste0('res.', input$resolution_subset)
             if (!(res_str %in%
                   colnames(dataset_info$rdat_subset@meta.data))) {
                 dataset_info$rdat_subset = FindClusters(
                     object = dataset_info$rdat_subset,
-                    dims.use = 1:dataset_info$dims_subset,
+                    dims.use = 1:dataset_info$resource$dims.use,
                     resolution = input$resolution_subset,
                     print.output = FALSE,
                     force.recalc = TRUE
@@ -444,7 +457,7 @@ shinyServer(function(input, output, session) {
 
         gene_title = gene_name_title(
             get_input_gene(),
-            species = dataset_info$species
+            species = dataset_info$resource$species
         )
         plot.dat <- left_join(
             get_cluster_dat(),
@@ -478,7 +491,7 @@ shinyServer(function(input, output, session) {
             plot_2 <- get_feature_plot()
             plot_3 <- get_vln_plot()
             dataset_info$img_name = paste(
-                dataset_info$name,
+                dataset_info$resource$label,
                 paste0('res', input$resolution),
                 input$dr_method,
                 gene.name,
@@ -492,7 +505,7 @@ shinyServer(function(input, output, session) {
             )
         } else {
             dataset_info$img_name = paste(
-                dataset_info$name,
+                dataset_info$resource$label,
                 paste0('res', input$resolution),
                 input$dr_method,
                 sep = '_'
@@ -536,8 +549,7 @@ shinyServer(function(input, output, session) {
         shinyjs::enable(id = 'resolution')
 
         dataset_info$rdat_subset = NULL
-        dataset_info$dims_subset = NULL
-        dataset_info$reso_subset = NULL
+        dataset_info$resource_subset = NULL
         if (!is.null(dataset_info$rdat)) {
             dataset_info$info_text = get_dataset_info(dataset_info$rdat)
         }
@@ -575,7 +587,7 @@ shinyServer(function(input, output, session) {
                 )
                 rdat_subset = FindClusters(
                     rdat_subset,
-                    dims.use = 1:dataset_info$dims,
+                    dims.use = 1:dataset_info$resource$dims.use,
                     resolution = res_default,
                     force.recalc = TRUE,
                     print.output = FALSE
@@ -585,23 +597,22 @@ shinyServer(function(input, output, session) {
         )
 
         dataset_info$rdat_subset = rdat_subset
-        dataset_info$dims_subset = dataset_info$dims
-        dataset_info$reso_subset = res_default
+        resource_subset = list(
+            species = dataset_info$resource$species,
+            dims.use = dataset_info$resource$dims.use,
+            resolution = dataset_info$resource$resolution
+        )
+        dataset_info$resource_subset = resource_subset
     })
 
     observeEvent(input$cb_subset, {
-        if (input$cb_subset) {
-            shinyjs::show(id = 'cb_allpt')
-            shinyjs::show(id = 'cluster_id_subset')
-            shinyjs::show(id = 'resolution_subset')
-        } else {
+        if (input$cb_subset == 'none') {
             shinyjs::hide('cb_allpt')
             shinyjs::hide('cluster_id_subset')
             shinyjs::hide('resolution_subset')
             shinyjs::enable(id = 'resolution')
             dataset_info$rdat_subset = NULL
-            dataset_info$dims_subset = NULL
-            dataset_info$reso_subset = NULL
+            dataset_info$resource_subset = NULL
             if (!is.null(dataset_info$rdat)) {
                 dataset_info$info_text = get_dataset_info(dataset_info$rdat)
             }
@@ -610,11 +621,11 @@ shinyServer(function(input, output, session) {
                 inputId = 'cluster_id_subset',
                 selected = NULL
             )
-            updateCheckboxInput(
-                session = session,
-                inputId = 'cb_allpt',
-                value = FALSE
-            )
+            # updateCheckboxInput(
+            #     session = session,
+            #     inputId = 'cb_allpt',
+            #     value = FALSE
+            # )
             if (input$resolution_subset != res_default) {
                 updateSliderInput(
                     session = session,
@@ -622,6 +633,38 @@ shinyServer(function(input, output, session) {
                     value = res_default
                 )
             }
+        } else if (input$cb_subset == 'custom') {
+            shinyjs::show(id = 'cb_allpt')
+            shinyjs::show(id = 'cluster_id_subset')
+            shinyjs::show(id = 'resolution_subset')
+        } else {
+            # use pre-defined subsets
+            shinyjs::show(id = 'cb_allpt')
+            shinyjs::hide(id = 'cluster_id_subset')
+            shinyjs::show(id = 'resolution_subset')
+
+            rdat_subset = read_rds(
+                file.path(
+                    'data',
+                    input$dataset,
+                    glue('{input$cb_subset}.rds')
+                )
+            )
+            dataset_info$rdat_subset = rdat_subset
+            dataset_info$info_text = get_dataset_info(rdat_subset)
+
+            resource_subset.id = match(
+                input$cb_subset,
+                map_chr(dataset_info$resource$subset, ~.$label)
+            )
+            resource_subset = dataset_info$resource$subset[[resource_subset.id]]
+            if (is.null(resource_subset$dims.use)) {
+                resource_subset$dims.use = 1:dataset_info$resource$dims.use
+            }
+            if (is.null(resource_subset$resolution)) {
+                resource_subset$resolution = res_default
+            }
+            dataset_info$resource_subset = resource_subset
         }
     })
 
@@ -630,7 +673,7 @@ shinyServer(function(input, output, session) {
         withProgress(message = 'Find marker gene',
                      detail = 'collect cell id in cluster',
                      value = 0, {
-            if (input$cb_subset && (!is.null(dataset_info$rdat_subset))) {
+            if (input$cb_subset != 'none' && (!is.null(dataset_info$rdat_subset))) {
                 rdat <- SetAllIdent(
                     dataset_info$rdat_subset,
                     id = paste0('res.', input$resolution_subset)
@@ -750,7 +793,7 @@ shinyServer(function(input, output, session) {
                 runjs(glue("document.getElementById('tx_gene1').style.borderColor='{color_success}'"))
             } else {
                 input_gene = gene_name_std(input$tx_gene1,
-                                           dataset_info$species,
+                                           dataset_info$resource$species,
                                            rownames(dataset_info$rdat@data))
                 if (input_gene == '') {
                     runjs(glue("document.getElementById('tx_gene1').style.borderColor='{color_error}'"))
@@ -775,7 +818,7 @@ shinyServer(function(input, output, session) {
                 runjs(glue("document.getElementById('tx_gene2').style.borderColor='{color_success}'"))
             } else {
                 input_gene = gene_name_std(input$tx_gene2,
-                                           dataset_info$species,
+                                           dataset_info$resource$species,
                                            rownames(dataset_info$rdat@data))
                 if (input_gene == '') {
                     runjs(glue("document.getElementById('tx_gene2').style.borderColor='{color_error}'"))
@@ -789,7 +832,7 @@ shinyServer(function(input, output, session) {
 
     output$plot_gene_expr2 <- renderPlot({
         req(dataset_info$rdat)
-        if (input$cb_subset && (!is.null(dataset_info$rdat_subset))) {
+        if (input$cb_subset != 'none' && (!is.null(dataset_info$rdat_subset))) {
             rdat <- SetAllIdent(
                 dataset_info$rdat_subset,
                 id = paste0('res.', input$resolution_subset)

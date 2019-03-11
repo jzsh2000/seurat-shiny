@@ -156,9 +156,31 @@ walk2(
     function(sample, dims) {
         print(sample)
         object <- update_seurat_obj(
-            seurat.file = glue('shiny/data/{sample}/{sample}.rds'),
-            projection.file = glue('shiny/data/{sample}/projection.csv'),
+            seurat.file = glue('shiny/data.bak/{sample}/{sample}.rds'),
+            projection.file = glue('shiny/data.bak/{sample}/projection.csv'),
             dims.use = 1:dims
         )
-        write_rds(object, glue('shiny/data/{sample}.rds'), compress = 'gz')
+        dir.create(glue('shiny/data/{sample}'), showWarnings = FALSE)
+        write_rds(object, glue('shiny/data/{sample}/{sample}.rds'),
+                  compress = 'gz')
 })
+
+for (resource in resource.list) {
+    if (!is.null(resource$subset)) {
+        sample.parent <- resource$label
+        print(resource$description)
+        for (resource.subset in resource$subset) {
+            sample <- resource.subset$label
+            print(resource.subset$description)
+            dims <- resource$dims.use
+            object <- update_seurat_obj(
+                seurat.file = glue('shiny/data.bak/{sample}/{sample}.rds'),
+                projection.file = glue('shiny/data.bak/{sample}/projection.csv'),
+                dims.use = 1:dims
+            )
+            write_rds(object,
+                      glue('shiny/data/{sample.parent}/{sample}.rds'),
+                      compress = 'gz')
+        }
+    }
+}

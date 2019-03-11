@@ -81,25 +81,19 @@ shinyUI(navbarPage(
                                       label = 'Gene name',
                                       placeholder = 'Your awesome gene'),
                             hr(),
-                            fluidRow(
-                                column(
-                                    width = 6,
-                                    checkboxInput(
-                                        inputId = 'cb_subset',
-                                        label = 'Use subset cluster',
-                                        value = FALSE)
+                            selectizeInput(
+                                inputId = 'cb_subset',
+                                label = 'Use subset cluster',
+                                choices = c(
+                                    '(None)' = 'none',
+                                    'Custom' = 'custom'
                                 ),
-                                column(
-                                    width = 6,
-                                    downloadButton(
-                                        'd_img',
-                                        label = 'Download PDF image'
-                                    )
-                                )
+                                selected = '(None)',
+                                multiple = FALSE
                             ),
                             checkboxInput(inputId = 'cb_allpt',
                                           label = 'Show all cells',
-                                          value = FALSE),
+                                          value = TRUE),
                             selectizeInput(inputId = 'cluster_id_subset',
                                            label = 'Choose cluster ID',
                                            choices = NULL,
@@ -145,7 +139,14 @@ shinyUI(navbarPage(
                                       placeholder = 'Your awesome gene')
                         ),
                         hr(),
-                        textOutput(outputId = 'dat_info_text')
+                        textOutput(outputId = 'dat_info_text'),
+                        conditionalPanel(
+                            glue('input.tabset_main == "{panel_name_1}"'),
+                            downloadButton(
+                                'd_img',
+                                label = 'Download PDF image'
+                            )
+                        )
                     )
 
                 )
