@@ -191,11 +191,11 @@ shinyServer(function(input, output, session) {
             dataset_info$deg_table = NULL
 
             updateSelectizeInput(session,
-                                 inputId = 'sig_cluster_1',,
+                                 inputId = 'sig_cluster_1',
                                  choices = NULL,
                                  selected = NULL)
             updateSelectizeInput(session,
-                                 inputId = 'sig_cluster_2',,
+                                 inputId = 'sig_cluster_2',
                                  choices = NULL,
                                  selected = NULL)
         } else {
@@ -822,7 +822,6 @@ shinyServer(function(input, output, session) {
     }, {
         if ((input$sig_cluster_1 != '') &&
             (input$sig_cluster_1 != input$sig_cluster_2)) {
-
             dataset_info$deg_table = find_marker_gene()
         }
     })

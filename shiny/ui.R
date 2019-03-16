@@ -126,7 +126,7 @@ shinyUI(navbarPage(
                         conditionalPanel(
                             glue('input.tabset_main == "{panel_name_3}"'),
                             selectizeInput(inputId = 'cluster_id',
-                                           label = 'Use cluster',
+                                           label = 'Use cluster [*]',
                                            choices = NULL,
                                            selected = NULL,
                                            multiple = TRUE
