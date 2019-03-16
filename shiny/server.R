@@ -205,10 +205,11 @@ shinyServer(function(input, output, session) {
             shinyjs::hide(id = 'cluster_id_subset')
             shinyjs::hide(id = 'resolution_subset')
 
+            message.main = 'Load seurat object from disk'
             withProgress(
-                message = 'Load seurat object',
-                detail = 'Locate RDS file path',
-                value = 0, {
+                message = message.main,
+                detail = 'Collect RDS file info',
+                value = 0.1, {
                     resource.id = match(
                         input$dataset,
                         map_chr(resource.list, ~.$label)
@@ -223,7 +224,11 @@ shinyServer(function(input, output, session) {
                     if (is.null(resource$species)) {
                         resource$species = species_default
                     }
-                    incProgress(0.1, message = 'Read RDS file')
+                    incProgress(
+                        amount = 0.1,
+                        message = 'Load seurat object',
+                        detail = 'Read RDS file'
+                    )
 
                     rdat = read_rds(
                         file.path(
@@ -232,7 +237,11 @@ shinyServer(function(input, output, session) {
                             glue('{input$dataset}.rds')
                         )
                     )
-                    incProgress(0.7, message = 'Get resolution list')
+                    incProgress(
+                        amount = 0.6,
+                        message = message.main,
+                        detail = 'Get resolution list'
+                    )
 
                     if ('resolution' %in% names(resource)) {
                         cluster.res = round(
@@ -249,7 +258,11 @@ shinyServer(function(input, output, session) {
                         cluster.res = 0.8
                     }
 
-                    incProgress(0.1, message = 'Load pre-defined subsets')
+                    incProgress(
+                        amount = 0.1,
+                        message = message.main,
+                        detail = 'Organize pre-defined subsets'
+                    )
                     if (!is.null(resource$subset)) {
                         updateSelectizeInput(
                             session = session,
@@ -265,7 +278,11 @@ shinyServer(function(input, output, session) {
                         )
                     }
 
-                    setProgress(value = 1, message = 'Finish!')
+                    setProgress(
+                        value = 1,
+                        message = message.main,
+                        detail = 'All done!'
+                    )
                 })
 
             dataset_info$resource = resource
@@ -285,10 +302,11 @@ shinyServer(function(input, output, session) {
         if (!is.null(dataset_info$rdat_subset) &&
             !(res_name %in% colnames(dataset_info$rdat_subset@meta.data))) {
             print(glue('update cluster resolution to {res}...'))
+            message.main = 'Calculate clusters with new resolution'
             withProgress(
-                message = 'Find clusters using new resolution',
-                detail = 'This may take a while...',
-                value = 0, {
+                message = message.main,
+                detail = 'Run `FindClusters()` function',
+                value = 0.1, {
                     dataset_info$rdat_subset = FindClusters(
                         object = dataset_info$rdat_subset,
                         dims.use = 1:dataset_info$resource_subset$dims.use,
@@ -296,7 +314,11 @@ shinyServer(function(input, output, session) {
                         resolution = res,
                         force.recalc = TRUE
                     )
-                    setProgress(value = 1)
+                    setProgress(
+                        value = 1,
+                        message = message.main,
+                        detail = 'All done!'
+                    )
                 }
             )
         }
@@ -560,17 +582,19 @@ shinyServer(function(input, output, session) {
     observeEvent(get_cluster_subset(), {
         shinyjs::disable(id = 'resolution')
 
+        message.main = 'Create new dataset using selected clusters'
         withProgress(
-            message = 'Create new dataset using selected clusters',
+            message = message.main,
             detail = 'Make a copy of the original data',
-            value = 0, {
+            value = 0.1, {
                 rdat_subset <- SetAllIdent(
                     dataset_info$rdat,
                     id = paste0('res.', input$resolution)
                 )
                 incProgress(
                     amount = 0.2,
-                    message = 'Remove unused cells'
+                    message = message.main,
+                    detail = 'Remove unused cells'
                 )
                 rdat_subset = SubsetData(
                     rdat_subset,
@@ -579,13 +603,15 @@ shinyServer(function(input, output, session) {
                 )
                 incProgress(
                     amount = 0.3,
-                    message = 'Clean invalid metadata'
+                    message = message.main,
+                    detail = 'Clean invalid metadata'
                 )
                 rdat_subset@meta.data = rdat_subset@meta.data[,!str_detect(colnames(rdat_subset@meta.data), '^res\\.')]
                 dataset_info$info_text = get_dataset_info(rdat_subset)
                 incProgress(
                     amount = 0.1,
-                    message = 'Find clusters on subset'
+                    message = message.main,
+                    detail = 'Find clusters on subset'
                 )
                 rdat_subset = FindClusters(
                     rdat_subset,
@@ -594,7 +620,11 @@ shinyServer(function(input, output, session) {
                     force.recalc = TRUE,
                     print.output = FALSE
                 )
-                setProgress(value = 1, message = 'Finished!')
+                setProgress(
+                    value = 1,
+                    message = message.main,
+                    detail = 'All done!'
+                )
             }
         )
 
@@ -645,36 +675,55 @@ shinyServer(function(input, output, session) {
             shinyjs::hide(id = 'cluster_id_subset')
             shinyjs::show(id = 'resolution_subset')
 
-            rdat_subset = read_rds(
-                file.path(
-                    'data',
-                    input$dataset,
-                    glue('{input$cb_subset}.rds')
-                )
-            )
-            dataset_info$rdat_subset = rdat_subset
-            dataset_info$info_text = get_dataset_info(rdat_subset)
+            message.main = 'Load seurat object from disk'
+            withProgress(
+                message = message.main,
+                detail = 'Load RDS file',
+                value = 0.1, {
+                    rdat_subset = read_rds(
+                        file.path(
+                            'data',
+                            input$dataset,
+                            glue('{input$cb_subset}.rds')
+                        )
+                    )
 
-            resource_subset.id = match(
-                input$cb_subset,
-                map_chr(dataset_info$resource$subset, ~.$label)
+                    incProgress(
+                        amount = 0.6,
+                        message = message.main,
+                        detail = 'Collect dataset info'
+                    )
+                    dataset_info$rdat_subset = rdat_subset
+                    dataset_info$info_text = get_dataset_info(rdat_subset)
+                    resource_subset.id = match(
+                        input$cb_subset,
+                        map_chr(dataset_info$resource$subset, ~.$label)
+                    )
+                    resource_subset = dataset_info$resource$subset[[resource_subset.id]]
+                    if (is.null(resource_subset$dims.use)) {
+                        resource_subset$dims.use = 1:dataset_info$resource$dims.use
+                    }
+                    if (is.null(resource_subset$resolution)) {
+                        resource_subset$resolution = res_default
+                    }
+                    dataset_info$resource_subset = resource_subset
+                    setProgress(
+                        value = 1,
+                        message = message.main,
+                        detail = 'All done!'
+                    )
+                }
             )
-            resource_subset = dataset_info$resource$subset[[resource_subset.id]]
-            if (is.null(resource_subset$dims.use)) {
-                resource_subset$dims.use = 1:dataset_info$resource$dims.use
-            }
-            if (is.null(resource_subset$resolution)) {
-                resource_subset$resolution = res_default
-            }
-            dataset_info$resource_subset = resource_subset
         }
     })
 
     # ---------- 2nd panel
     find_marker_gene <- function() {
-        withProgress(message = 'Find marker gene',
-                     detail = 'collect cell id in cluster',
-                     value = 0, {
+        message.main = 'Find signature genes'
+        withProgress(
+            message = message.main,
+            detail = 'Set cell ident using selected resolution',
+            value = 0.1, {
             if (input$cb_subset != 'none' && (!is.null(dataset_info$rdat_subset))) {
                 rdat <- SetAllIdent(
                     dataset_info$rdat_subset,
@@ -689,7 +738,11 @@ shinyServer(function(input, output, session) {
             cell_1 = input$sig_cluster_1
             cell_2 = input$sig_cluster_2
 
-            incProgress(amount = 0.2, message = 'run program')
+            incProgress(
+                amount = 0.2,
+                message = message.main,
+                detail = 'Finds markers for identity classes'
+            )
             if (sum(rdat@ident %in% cell_1) <= 3) {
                 runjs("document.getElementById('warning_info').innerHTML = '<font color=red>Warning: Cell group 1 has fewer than 3 cells</font>'")
                 output_df = sig.df.empty
@@ -733,7 +786,11 @@ shinyServer(function(input, output, session) {
                 }
             }
 
-            incProgress(amount = 0.7, message = 'create output dataframe')
+            incProgress(
+                amount = 0.6,
+                message = message.main,
+                detail = 'Create data frame for output'
+            )
 
             output_df <- output_df %>%
                 rownames_to_column(var = 'gene') %>%
@@ -745,7 +802,11 @@ shinyServer(function(input, output, session) {
                 dplyr::filter(myAUC > 0.7) %>%
                 arrange(desc(myAUC))
 
-            setProgress(value = 1, message = 'Finish!')
+            setProgress(
+                value = 1,
+                message = message.main,
+                detail = 'All done!'
+            )
         })
         output_df
     }
