@@ -163,6 +163,13 @@ shinyServer(function(input, output, session) {
         })
     }
 
+    url_ctrl <- reactiveValues(
+        # dataset = NULL,
+        reso = NULL,
+        dr = NULL,
+        gene = NULL
+    )
+
     dataset_info <- reactiveValues(
         resource = NULL,
         rdat = NULL,
@@ -217,13 +224,56 @@ shinyServer(function(input, output, session) {
                     resource = resource.list[[resource.id]]
                     if (is.null(resource$resolution)) {
                         resource$resolution = res_default
+                    } else {
+                        cluster.res = round(
+                            resource$resolution,
+                            digits = 1
+                        )
+                        if (cluster.res > 0 && cluster.res < 2 &&
+                            cluster.res != 0.8 &&
+                            is.null(url_ctrl$reso)) {
+                            updateSliderInput(
+                                session = session,
+                                inputId = 'resolution',
+                                value = cluster.res)
+                        }
                     }
+
+                    if (!is.null(url_ctrl$reso)) {
+                        updateSliderInput(
+                            session = session,
+                            inputId = 'resolution',
+                            value = url_ctrl$reso
+                        )
+                        url_ctrl$reso = NULL
+                    }
+
+
                     if (is.null(resource$dims.use)) {
                         resource$dims.use = 1:dims_default
                     }
                     if (is.null(resource$species)) {
                         resource$species = species_default
                     }
+
+                    if (!is.null(url_ctrl$dr)) {
+                        updateSelectizeInput(
+                            session = session,
+                            inputId = 'dr_method',
+                            selected = url_ctrl$dr
+                        )
+                        url_ctrl$dr = NULL
+                    }
+
+                    if (!is.null(url_ctrl$gene)) {
+                        updateTextInput(
+                            session = session,
+                            inputId = 'tx_gene',
+                            value = url_ctrl$gene
+                        )
+                        url_ctrl$gene = NULL
+                    }
+
                     incProgress(
                         amount = 0.1,
                         message = 'Load seurat object',
@@ -242,21 +292,6 @@ shinyServer(function(input, output, session) {
                         message = message.main,
                         detail = 'Get resolution list'
                     )
-
-                    if ('resolution' %in% names(resource)) {
-                        cluster.res = round(
-                            resource$resolution,
-                            digits = 1
-                        )
-                        if (cluster.res < 0 || cluster.res > 2) {
-                            cluster.res = 0.8
-                        } else if (cluster.res != 0.8) {
-                            updateSliderInput(session, 'resolution',
-                                              value = cluster.res)
-                        }
-                    } else {
-                        cluster.res = 0.8
-                    }
 
                     incProgress(
                         amount = 0.1,
@@ -1021,6 +1056,7 @@ shinyServer(function(input, output, session) {
     })
 
     # ---------- parsing URL
+    # /?dataset=cb&dr=tsne&reso=0.3&gene=AXL
     observe({
         query <- parseQueryString(session$clientData$url_search)
         if (!is.null(query[['dataset']])) {
@@ -1029,6 +1065,21 @@ shinyServer(function(input, output, session) {
                     session,
                     inputId = 'dataset',
                     selected = query[['dataset']])
+
+                if (!is.null(query[['dr']]) &&
+                    (query[['dr']] %in% c('pca', 'tsne', 'umap'))) {
+                    url_ctrl$dr = query[['dr']]
+                }
+
+                reso <- as.numeric(query[['reso']])
+                if (length(reso) > 0 && !is.na(reso) &&
+                    reso >= 0 && reso <= 2) {
+                    url_ctrl$reso = round(reso, digits = 1)
+                }
+
+                if (is.character(query[['gene']])) {
+                    url_ctrl$gene = query[['gene']]
+                }
             }
         }
     })
