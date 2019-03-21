@@ -1019,4 +1019,17 @@ shinyServer(function(input, output, session) {
             )
         plot_grid(plot.umi, plot.gene, ncol = 1)
     })
+
+    # ---------- parsing URL
+    observe({
+        query <- parseQueryString(session$clientData$url_search)
+        if (!is.null(query[['dataset']])) {
+            if (query[['dataset']] %in% map_chr(resource.list, ~.$label)) {
+                updateSelectizeInput(
+                    session,
+                    inputId = 'dataset',
+                    selected = query[['dataset']])
+            }
+        }
+    })
 })
