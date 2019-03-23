@@ -184,151 +184,151 @@ shinyServer(function(input, output, session) {
         deg_table = NULL
     )
 
+    observe(if (is.null(input$dataset)) {
+        shinyjs::hide(id = 'dat_config')
+        shinyjs::hide(id = 'dat_panel')
+
+        dataset_info$resource = NULL
+        dataset_info$rdat = NULL
+        dataset_info$resource_subset = NULL
+        dataset_info$rdat_subset = NULL
+        dataset_info$info_text = ''
+        dataset_info$img_name = ''
+        dataset_info$deg_table = NULL
+
+        updateSelectizeInput(session,
+                             inputId = 'sig_cluster_1',
+                             choices = NULL,
+                             selected = NULL)
+        updateSelectizeInput(session,
+                             inputId = 'sig_cluster_2',
+                             choices = NULL,
+                             selected = NULL)
+    })
+
     observeEvent(input$dataset, {
-        if (input$dataset == 'none') {
-            shinyjs::hide(id = 'dat_config')
-            shinyjs::hide(id = 'dat_panel')
+        shinyjs::show(id = 'dat_config')
+        shinyjs::show(id = 'dat_panel')
+        shinyjs::hide(id = 'cb_allpt')
+        shinyjs::hide(id = 'cluster_id_subset')
+        shinyjs::hide(id = 'resolution_subset')
 
-            dataset_info$resource = NULL
-            dataset_info$rdat = NULL
-            dataset_info$resource_subset = NULL
-            dataset_info$rdat_subset = NULL
-            dataset_info$info_text = ''
-            dataset_info$img_name = ''
-            dataset_info$deg_table = NULL
-
-            updateSelectizeInput(session,
-                                 inputId = 'sig_cluster_1',
-                                 choices = NULL,
-                                 selected = NULL)
-            updateSelectizeInput(session,
-                                 inputId = 'sig_cluster_2',
-                                 choices = NULL,
-                                 selected = NULL)
-        } else {
-            shinyjs::show(id = 'dat_config')
-            shinyjs::show(id = 'dat_panel')
-            shinyjs::hide(id = 'cb_allpt')
-            shinyjs::hide(id = 'cluster_id_subset')
-            shinyjs::hide(id = 'resolution_subset')
-
-            message.main = 'Load seurat object from disk'
-            withProgress(
-                message = message.main,
-                detail = 'Collect RDS file info',
-                value = 0.1, {
-                    resource.id = match(
-                        input$dataset,
-                        map_chr(resource.list, ~.$label)
+        message.main = 'Load seurat object from disk'
+        withProgress(
+            message = message.main,
+            detail = 'Collect RDS file info',
+            value = 0.1, {
+                resource.id = match(
+                    input$dataset,
+                    map_chr(resource.list, ~.$label)
+                )
+                resource = resource.list[[resource.id]]
+                if (is.null(resource$resolution)) {
+                    resource$resolution = res_default
+                } else {
+                    cluster.res = round(
+                        resource$resolution,
+                        digits = 1
                     )
-                    resource = resource.list[[resource.id]]
-                    if (is.null(resource$resolution)) {
-                        resource$resolution = res_default
-                    } else {
-                        cluster.res = round(
-                            resource$resolution,
-                            digits = 1
-                        )
-                        if (cluster.res > 0 && cluster.res < 2 &&
-                            cluster.res != 0.8 &&
-                            is.null(url_ctrl$reso)) {
-                            updateSliderInput(
-                                session = session,
-                                inputId = 'resolution',
-                                value = cluster.res)
-                        }
-                    }
-
-                    if (!is.null(url_ctrl$reso)) {
+                    if (cluster.res > 0 && cluster.res < 2 &&
+                        cluster.res != 0.8 &&
+                        is.null(url_ctrl$reso)) {
                         updateSliderInput(
                             session = session,
                             inputId = 'resolution',
-                            value = url_ctrl$reso
-                        )
-                        url_ctrl$reso = NULL
+                            value = cluster.res)
                     }
+                }
 
-
-                    if (is.null(resource$dims.use)) {
-                        resource$dims.use = 1:dims_default
-                    }
-                    if (is.null(resource$species)) {
-                        resource$species = species_default
-                    }
-
-                    if (!is.null(url_ctrl$dr)) {
-                        updateSelectizeInput(
-                            session = session,
-                            inputId = 'dr_method',
-                            selected = url_ctrl$dr
-                        )
-                        url_ctrl$dr = NULL
-                    }
-
-                    if (!is.null(url_ctrl$gene)) {
-                        updateTextInput(
-                            session = session,
-                            inputId = 'tx_gene',
-                            value = url_ctrl$gene
-                        )
-                        url_ctrl$gene = NULL
-                    }
-
-                    incProgress(
-                        amount = 0.1,
-                        message = 'Load seurat object',
-                        detail = 'Read RDS file'
+                if (!is.null(url_ctrl$reso)) {
+                    updateSliderInput(
+                        session = session,
+                        inputId = 'resolution',
+                        value = url_ctrl$reso
                     )
+                    url_ctrl$reso = NULL
+                }
 
-                    rdat = read_rds(
-                        file.path(
-                            'data',
-                            input$dataset,
-                            glue('{input$dataset}.rds')
-                        )
-                    )
-                    incProgress(
-                        amount = 0.6,
-                        message = message.main,
-                        detail = 'Get resolution list'
-                    )
 
-                    incProgress(
-                        amount = 0.1,
-                        message = message.main,
-                        detail = 'Organize pre-defined subsets'
+                if (is.null(resource$dims.use)) {
+                    resource$dims.use = 1:dims_default
+                }
+                if (is.null(resource$species)) {
+                    resource$species = species_default
+                }
+
+                if (!is.null(url_ctrl$dr)) {
+                    updateSelectizeInput(
+                        session = session,
+                        inputId = 'dr_method',
+                        selected = url_ctrl$dr
                     )
-                    if (!is.null(resource$subset)) {
-                        updateSelectizeInput(
-                            session = session,
-                            inputId = 'cb_subset',
-                            choices = c(
-                                '(None)' = 'none',
-                                'Custom' = 'custom',
-                                set_names(
-                                    map_chr(resource$subset, ~.$label),
-                                    map_chr(resource$subset, ~.$description)
-                                )
+                    url_ctrl$dr = NULL
+                }
+
+                if (!is.null(url_ctrl$gene)) {
+                    updateTextInput(
+                        session = session,
+                        inputId = 'tx_gene',
+                        value = url_ctrl$gene
+                    )
+                    url_ctrl$gene = NULL
+                }
+
+                incProgress(
+                    amount = 0.1,
+                    message = 'Load seurat object',
+                    detail = 'Read RDS file'
+                )
+
+                rdat = read_rds(
+                    file.path(
+                        'data',
+                        input$dataset,
+                        glue('{input$dataset}.rds')
+                    )
+                )
+                incProgress(
+                    amount = 0.6,
+                    message = message.main,
+                    detail = 'Get resolution list'
+                )
+
+                incProgress(
+                    amount = 0.1,
+                    message = message.main,
+                    detail = 'Organize pre-defined subsets'
+                )
+                if (!is.null(resource$subset)) {
+                    updateSelectizeInput(
+                        session = session,
+                        inputId = 'cb_subset',
+                        choices = c(
+                            '(None)' = 'none',
+                            'Custom' = 'custom',
+                            set_names(
+                                map_chr(resource$subset, ~.$label),
+                                map_chr(resource$subset, ~.$description)
                             )
                         )
-                    }
-
-                    setProgress(
-                        value = 1,
-                        message = message.main,
-                        detail = 'All done!'
                     )
-                })
+                }
 
-            dataset_info$resource = resource
-            dataset_info$rdat = rdat
-            dataset_info$resource_subset = NULL
-            dataset_info$rdat_subset = NULL
-            dataset_info$img_name = ''
-            dataset_info$info_text = get_dataset_info(rdat)
-            dataset_info$deg_table = sig.df.empty
-            runjs("document.getElementById('warning_info').innerHTML = ''")
-        }
+                setProgress(
+                    value = 1,
+                    message = message.main,
+                    detail = 'All done!'
+                )
+            })
+
+        dataset_info$resource = resource
+        dataset_info$rdat = rdat
+        dataset_info$resource_subset = NULL
+        dataset_info$rdat_subset = NULL
+        dataset_info$img_name = ''
+        dataset_info$info_text = get_dataset_info(rdat)
+        dataset_info$deg_table = sig.df.empty
+        runjs("document.getElementById('warning_info').innerHTML = ''")
     })
 
     # ---------- 1st panel

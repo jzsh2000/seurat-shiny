@@ -52,12 +52,13 @@ shinyUI(navbarPage(
                     inputId = 'dataset',
                     label = 'Dataset [*]',
                     choices = c(
-                        ' ' = 'none',
                         set_names(
                             map_chr(resource.list, ~.$label),
                             map_chr(resource.list, ~.$description)
                         )
-                    )
+                    ),
+                    multiple = TRUE,
+                    options = list(maxItems = 1)
                 ),
                 hidden(
                     tags$div(
