@@ -75,12 +75,15 @@ shinyUI(navbarPage(
                             selectizeInput(
                                 inputId = 'dr_method',
                                 label = 'Dimensional Reduction Method',
-                                choices = set_names(c('pca', 'tsne', 'tsne_cr', 'umap'), c('PCA', 't-SNE', 't-SNE (Cell Ranger)', 'UMAP')),
-                                selected = 'umap'
+                                choices = NULL,
+                                selected = NULL
                             ),
-                            textInput(inputId = 'tx_gene',
-                                      label = 'Gene name',
-                                      placeholder = 'Your awesome gene'),
+                            textInput(
+                                inputId = 'tx_gene',
+                                label = 'Gene name',
+                                value = '',
+                                placeholder = 'Your awesome gene'
+                            ),
                             hr(),
                             selectizeInput(
                                 inputId = 'cb_subset',

@@ -257,15 +257,6 @@ shinyServer(function(input, output, session) {
                     resource$species = species_default
                 }
 
-                if (!is.null(url_ctrl$dr)) {
-                    updateSelectizeInput(
-                        session = session,
-                        inputId = 'dr_method',
-                        selected = url_ctrl$dr
-                    )
-                    url_ctrl$dr = NULL
-                }
-
                 if (!is.null(url_ctrl$gene)) {
                     updateTextInput(
                         session = session,
@@ -280,7 +271,12 @@ shinyServer(function(input, output, session) {
                     message = 'Load seurat object',
                     detail = 'Read RDS file'
                 )
-
+                # updateSelectizeInput(
+                #     session = session,
+                #     inputId = 'dr_method',
+                #     choices = NULL,
+                #     selected = NULL
+                # )
                 rdat = read_rds(
                     file.path(
                         'data',
@@ -288,10 +284,41 @@ shinyServer(function(input, output, session) {
                         glue('{input$dataset}.rds')
                     )
                 )
+
                 incProgress(
                     amount = 0.6,
                     message = message.main,
-                    detail = 'Get resolution list'
+                    detail = 'Get dr methods'
+                )
+                dr.names <- names(rdat@dr)
+                dr.valid <- set_names(
+                    c('pca', 'tsne', 'tsne_cr', 'umap'),
+                    c('PCA', 't-SNE', 't-SNE (Cell Ranger)', 'UMAP')
+                )
+                dr.choices <- set_names(
+                    c(unname(dr.valid[dr.valid %in% dr.names]),
+                      setdiff(dr.names, dr.valid)),
+                    c(names(dr.valid[dr.valid %in% dr.names]),
+                      setdiff(dr.names, dr.valid)))
+                if (!is.null(url_ctrl$dr)) {
+                    if (url_ctrl$dr %in% unname(dr.choices)) {
+                        dr.selected = url_ctrl$dr
+                    }
+                    url_ctrl$dr = NULL
+                } else if (!is.null(input$dr_method) &&
+                           input$dr_method %in% dr.names) {
+                    dr.selected = input$dr_method
+                } else {
+                    dr.selected = if_else(
+                        'umap' %in% dr.names,
+                        'umap', dr.names[1]
+                    )
+                }
+                updateSelectizeInput(
+                    session = session,
+                    inputId = 'dr_method',
+                    choices = dr.choices,
+                    selected = dr.selected
                 )
 
                 incProgress(
@@ -385,6 +412,7 @@ shinyServer(function(input, output, session) {
     }) %>% debounce(1500)
 
     get_cluster_dat <- reactive({
+        req(input$dr_method)
         if (input$cb_subset != 'none' && (!is.null(dataset_info$rdat_subset))) {
             res_str = paste0('res.', input$resolution_subset)
             if (!(res_str %in%
