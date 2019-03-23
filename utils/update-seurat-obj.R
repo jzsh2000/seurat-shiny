@@ -11,7 +11,7 @@ RunUMAP <- function(
 {
     require('reticulate')
     require('Seurat')
-    use_virtualenv(file.path(here::here(), 'venv'), required = TRUE)
+    # use_virtualenv(file.path(here::here(), 'venv'), required = TRUE)
 
     if (!py_module_available(module = "umap")) {
         stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
@@ -132,11 +132,12 @@ update_seurat_obj <- function(
         dims.use = 1:dims.use
     }
 
-    object@meta.data <- object@meta.data[,!str_detect(colnames(cb@meta.data), '^res')]
+    object@meta.data <- object@meta.data[,!str_detect(colnames(object@meta.data), '^res')]
     object <- FindClusters(
         object = object,
         dims.use = dims.use,
-        resolution = seq(from = 0, to = 2, by = 0.1)
+        resolution = seq(from = 0, to = 2, by = 0.1),
+        force.recalc = TRUE
     )
     object <- SetAllIdent(object, id = 'res.0.8')
 
