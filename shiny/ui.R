@@ -161,8 +161,8 @@ shinyUI(navbarPage(
                                     ),
                                     tabPanel(
                                         title = panel_name_2,
-                                        tags$p(id = 'warning_info'),
-                                        DT::dataTableOutput('table_sig_gene')
+                                        DT::dataTableOutput('table_sig_gene'),
+                                        tags$p(id = 'warning_info')
                                     ),
                                     tabPanel(
                                         title = panel_name_3,
