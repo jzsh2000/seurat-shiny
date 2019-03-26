@@ -619,8 +619,13 @@ shinyServer(function(input, output, session) {
             paste0(dataset_info$img_name, '.pdf')
         },
         content = function(file) {
-            ggsave(filename = file, plot = get_gene_expr_plot(),
-                   width = 9, height = 9)
+            ggsave(
+                filename = file,
+                plot = get_gene_expr_plot(),
+                device = 'pdf',
+                width = 9,
+                height = 9
+            )
         }
     )
 
@@ -732,11 +737,13 @@ shinyServer(function(input, output, session) {
             shinyjs::show(id = 'cb_allpt')
             shinyjs::show(id = 'cluster_id_subset')
             shinyjs::show(id = 'resolution_subset')
+            shinyjs::enable(id = 'resolution')
         } else {
             # use pre-defined subsets
             shinyjs::show(id = 'cb_allpt')
             shinyjs::hide(id = 'cluster_id_subset')
             shinyjs::show(id = 'resolution_subset')
+            shinyjs::disable(id = 'resolution')
 
             message.main = 'Load seurat object from disk'
             withProgress(
