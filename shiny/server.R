@@ -866,8 +866,23 @@ shinyServer(function(input, output, session) {
     })
 
     output$table_sig_gene <- DT::renderDataTable({
-        dataset_info$deg_table
-    }, selection = 'single')
+        datatable(
+            dataset_info$deg_table,
+            escape = FALSE,
+            selection = 'single',
+            extension = 'Buttons',
+            options = list(
+                dom = 'Bfrtip',
+                buttons = list(
+                    'copy',
+                    list(
+                        extend = 'excel',
+                        filename = dataset_info$resource$label
+                    )
+                )
+            )
+        )
+    }, server = FALSE)
 
     observe(
         if (!is.null(input$table_sig_gene_row_last_clicked)) {
