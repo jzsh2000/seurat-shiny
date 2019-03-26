@@ -179,7 +179,6 @@ shinyServer(function(input, output, session) {
         rdat_subset = NULL,
 
         # other tmp data
-        img_name = '',
         info_text = '',
         deg_table = NULL
     )
@@ -193,7 +192,6 @@ shinyServer(function(input, output, session) {
         dataset_info$resource_subset = NULL
         dataset_info$rdat_subset = NULL
         dataset_info$info_text = ''
-        dataset_info$img_name = ''
         dataset_info$deg_table = NULL
 
         updateSelectizeInput(session,
@@ -352,7 +350,6 @@ shinyServer(function(input, output, session) {
         dataset_info$rdat = rdat
         dataset_info$resource_subset = NULL
         dataset_info$rdat_subset = NULL
-        dataset_info$img_name = ''
         dataset_info$info_text = get_dataset_info(rdat)
         dataset_info$deg_table = sig.df.empty
         runjs("document.getElementById('warning_info').innerHTML = ''")
@@ -577,13 +574,6 @@ shinyServer(function(input, output, session) {
             plot_1 <- get_dim_plot()
             plot_2 <- get_feature_plot()
             plot_3 <- get_vln_plot()
-            dataset_info$img_name = paste(
-                dataset_info$resource$label,
-                paste0('res', input$resolution),
-                input$dr_method,
-                gene.name,
-                sep = '_'
-            )
 
             plot_grid(
                 plot_grid(plot_1, plot_2, align = 'h'),
@@ -591,12 +581,6 @@ shinyServer(function(input, output, session) {
                 rel_heights = c(3, 2)
             )
         } else {
-            dataset_info$img_name = paste(
-                dataset_info$resource$label,
-                paste0('res', input$resolution),
-                input$dr_method,
-                sep = '_'
-            )
             get_dim_plot() +
                 theme(
                     legend.position = 'right',
@@ -613,21 +597,6 @@ shinyServer(function(input, output, session) {
         get_gene_expr_plot()
         # }, width = 800, height = 600)
     }, height = plot_height_func(scale_factor_default))
-
-    output$d_img <- downloadHandler(
-        filename = function() {
-            paste0(dataset_info$img_name, '.pdf')
-        },
-        content = function(file) {
-            ggsave(
-                filename = file,
-                plot = get_gene_expr_plot(),
-                device = 'pdf',
-                width = 9,
-                height = 9
-            )
-        }
-    )
 
     output$dat_info_text <- renderText({
         dataset_info$info_text

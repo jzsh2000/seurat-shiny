@@ -143,14 +143,7 @@ shinyUI(navbarPage(
                                       placeholder = 'Your awesome gene')
                         ),
                         hr(),
-                        textOutput(outputId = 'dat_info_text'),
-                        conditionalPanel(
-                            glue('input.tabset_main == "{panel_name_1}"'),
-                            downloadButton(
-                                'd_img',
-                                label = 'Download PDF image'
-                            )
-                        )
+                        textOutput(outputId = 'dat_info_text')
                     )
 
                 )
