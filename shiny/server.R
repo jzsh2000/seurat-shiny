@@ -877,7 +877,11 @@ shinyServer(function(input, output, session) {
                     'copy',
                     list(
                         extend = 'excel',
-                        filename = dataset_info$resource$label
+                        filename = paste(
+                            'table',
+                            dataset_info$resource$label,
+                            sep = '_'
+                        )
                     )
                 )
             )
