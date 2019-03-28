@@ -95,37 +95,55 @@ shinyUI(navbarPage(
                                 selected = '(None)',
                                 multiple = FALSE
                             ),
-                            checkboxInput(inputId = 'cb_allpt',
-                                          label = 'Show all cells',
-                                          value = TRUE),
-                            selectizeInput(inputId = 'cluster_id_subset',
-                                           label = 'Choose cluster ID',
-                                           choices = NULL,
-                                           selected = NULL,
-                                           multiple = TRUE
+                            checkboxInput(
+                                inputId = 'cb_allpt',
+                                label = 'Show all cells',
+                                value = TRUE
                             ),
-                            sliderInput(inputId = 'resolution_subset',
-                                        label = 'Cluster resolution',
-                                        min = 0, max = 2.0,
-                                        value = res_default,
-                                        step = 0.1)
+                            selectizeInput(
+                                inputId = 'cluster_id_subset',
+                                label = 'Choose cluster ID',
+                                choices = NULL,
+                                selected = NULL,
+                                multiple = TRUE
+                            ),
+                            sliderInput(
+                                inputId = 'resolution_subset',
+                                label = 'Cluster resolution',
+                                min = 0, max = 2.0,
+                                value = res_default,
+                                step = 0.1
+                            )
                         ),
                         conditionalPanel(
                             glue('input.tabset_main == "{panel_name_2}"'),
-                            selectizeInput(inputId = 'sig_cluster_1',
-                                           label = 'Use cluster [*]',
-                                           choices = '',
-                                           multiple = FALSE),
-                            selectizeInput(inputId = 'sig_cluster_2',
-                                           label = 'Compare to',
-                                           choices = '(All other cells)',
-                                           # selected = NULL,
-                                           multiple = FALSE),
-                            radioButtons(inputId = 'marker_pos',
-                                         label = 'Find markers',
-                                         inline = TRUE,
-                                         choices = c('positive' = 'pos',
-                                                     'negative' = 'neg'))
+                            selectizeInput(
+                                inputId = 'sig_cluster_1',
+                                label = 'Use cluster [*]',
+                                choices = '',
+                                multiple = FALSE
+                            ),
+                            selectizeInput(
+                                inputId = 'sig_cluster_2',
+                                label = 'Compare to',
+                                choices = '(All other cells)',
+                                # selected = NULL,
+                                multiple = FALSE
+                            ),
+                            radioButtons(
+                                inputId = 'marker_pos',
+                                label = 'Find markers',
+                                inline = TRUE,
+                                choices = c(
+                                    'positive' = 'pos',
+                                    'negative' = 'neg'
+                                )
+                            ),
+                            actionButton(
+                                inputId = 'btn_run_deg',
+                                label = 'update',
+                                class = 'btn-primary'
+                            )
                         ),
                         conditionalPanel(
                             glue('input.tabset_main == "{panel_name_3}"'),
@@ -154,25 +172,27 @@ shinyUI(navbarPage(
                 hidden(
                     tags$div(
                         id = 'dat_panel',
-                        tabsetPanel(id = 'tabset_main', type = 'tabs',
-                                    tabPanel(
-                                        title = panel_name_1,
-                                        plotOutput('plot_gene_expr')
-                                    ),
-                                    tabPanel(
-                                        title = panel_name_2,
-                                        DT::dataTableOutput('table_sig_gene'),
-                                        tags$p(id = 'warning_info')
-                                    ),
-                                    tabPanel(
-                                        title = panel_name_3,
-                                        # verbatimTextOutput('coefficient'),
-                                        plotOutput('plot_gene_expr2')
-                                    ),
-                                    tabPanel(
-                                        title = panel_name_4,
-                                        plotOutput('plot_data_quality')
-                                    )
+                        tabsetPanel(
+                            id = 'tabset_main',
+                            type = 'tabs',
+                            tabPanel(
+                                title = panel_name_1,
+                                plotOutput('plot_gene_expr')
+                            ),
+                            tabPanel(
+                                title = panel_name_2,
+                                DT::dataTableOutput('table_sig_gene'),
+                                tags$p(id = 'warning_info')
+                            ),
+                            tabPanel(
+                                title = panel_name_3,
+                                # verbatimTextOutput('coefficient'),
+                                plotOutput('plot_gene_expr2')
+                            ),
+                            tabPanel(
+                                title = panel_name_4,
+                                plotOutput('plot_data_quality')
+                            )
                         )
                     )
                 )

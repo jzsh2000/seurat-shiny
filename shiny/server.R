@@ -850,14 +850,8 @@ shinyServer(function(input, output, session) {
         output_df
     }
 
-    get_sig_cluster_input <- reactive({
-        list(cluster1 = input$sig_cluster_1,
-             cluster2 = input$sig_cluster_2)
-    }) %>% debounce(2000)
-
     observeEvent({
-        get_sig_cluster_input()
-        input$marker_pos
+        input$btn_run_deg
     }, {
         if ((input$sig_cluster_1 != '') &&
             (input$sig_cluster_1 != input$sig_cluster_2)) {
