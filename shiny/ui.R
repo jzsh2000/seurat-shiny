@@ -106,7 +106,7 @@ shinyUI(navbarPage(
                             ),
                             sliderInput(inputId = 'resolution_subset',
                                         label = 'Cluster resolution',
-                                        min = 0.1, max = 2.0,
+                                        min = 0, max = 2.0,
                                         value = res_default,
                                         step = 0.1)
                         ),
