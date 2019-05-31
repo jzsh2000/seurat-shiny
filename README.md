@@ -39,40 +39,61 @@
 
 2. 建立数据列表
 
-    进入 `shiny/data/` 目录，将 `resource_list.csv.example` 复制为
-    `resource_list.csv`。这一 CSV 文件记录了应用关联的数据的详细信息，第一行为
-    列名，需要根据已有的数据进行删改后续的行。
+    进入 `shiny/data/` 目录，将 `resource_list.json.example` 复制为
+    `resource_list.json`。这一 JSON 文件记录了应用关联的数据的详细信息。
 
-    `resource_list.csv` 文件中各列的含义如下：
+    以`resource_list.json.example` 文件中的内容说明各键值对的含义：
+    ```json
+    [
+      {
+        "label": "bl1",
+        "description": "[BL1] mouse blood",
+        "species": "mouse",
+        "dims.use": 12,
+        "resolution": 0.3,
+        "subsets": [
+          {
+            "label": "bl1_dc",
+            "description": "[BL1_DC] mouse blood DC"
+          }
+        ]
+      },
+      {
+        "label": "sp2",
+        "description": "[SP2] mouse spleen,mouse",
+        "species": "mouse",
+        "dims.use": 12,
+        "resolution": 0.6
+      }
+    ]
+    ```
 
-    * __label__ - 样本简称，这一项不应该包含空格等空白字符
+    * __label__ - 样本简称，这一项不应该包含空格等空白字符。同时这也是样本数据所在的目录（相对于 `shiny/data/`  文件夹），如果该项的值为`foobar`，则样本数据位于`shiny/data/foobar`文件夹下
     * __description__ - 样本描述，即关于该样品的详细信息
     * __species__ - 样本来源的物种名，对于人和小鼠的样本应该分别为`human`和`mouse`
-    * __data_dir__ - 样本数据所在的目录（相对于 `shiny/data/`  文件夹），如果该
-      项的值为`foobar`，则样本数据位于`shiny/data/foobar`文件夹下
-    * __default_resolution__ - `Seurat` 包中 `FindClusters()` 函数使用的
-      `resolution` 参数，可以忽略。设计这一项的意义在于：如果曾经使用不同的
-      `resolution` 参数多次执行 `FindClusters()` 函数，这一项给出了数据提供者认为的
-      最适合的参数值。
+    * __dims.use__ - 样本处理过程中 `Seurat` 包中 `RunTSNE()` 和 `RunUMAP()` 使用的 `dims` 参数，表示主成分（PC）数量，若该项未设置则使用 `shiny/config.txt` 中 `dims_default` 的值。
+    * __resolution__ - 样本处理过程中 `Seurat` 包中 `FindClusters()` 使用的`resolution` 参数，若该项未设置则使用 `shiny/config.txt` 中 `res_default` 的值。设计这一项的意义在于：如果曾经使用不同的`resolution` 参数多次执行 `FindClusters()` 函数，这一项给出了数据提供者认为的最适合的参数值。
+    * __subsets__ - 预先计算的样本的子集，其下同样可以设定 `label`、`description` 等键。
 
 3. 数据准备
 
-    对于每一个样本（即上述 `resource_list.csv` 文件中的每一条记录），需要在相应
+    对于每一个样本（即上述 `resource_list.json` 文件中的每一条记录），需要在相应
     的数据文件夹中放置两类数据：
 
-    1. _XXX_.rds （这里的 XXX 应该与前述的 `data_dir` 保持一致，为使用 `Seurat`
+    1. _XXX_.rds （这里的 _XXX_ 应该与前述的 __label__ 保持一致，为使用 `Seurat`
        处理得到的 R 对象文件，使用 `saveRDS()` 或者 `readr::write_rds()` 函数保
        存到本地）
-    2. projection.csv (该文件记录了单细胞数据经 t-SNE 降维处理之后各个细胞在二
-       维平面上的坐标。对于 10X 数据，该文件可以在 10X pipeline 输出结果的路径
-       `./outs/analysis/tsne/2_components/projection.csv` 找到)
+    2. 0至若干个 _YYY_.rds，表示数据的子集处理得到的 R 对象文件。
 
-    为了得到 _XXX_.rds 文件，需要用 `Seurat` 对 single-cell RNA-seq 数据进行一
-    系列处理，包括数据过滤，降维处理，聚类分析等，实际的处理流程可以参考
-    [analysis.Rmd](shiny/example/analysis.Rmd) 文件
+    为了得到 _XXX_.rds 或 _YYY_.rds 文件，需要用 `Seurat` 对 single-cell RNA-seq 数据进行一系列处理，包括数据过滤，降维处理，聚类分析等，实际的处理流程可以参考[analysis.Rmd](shiny/example/analysis.Rmd) 文件。
 
 
 # 其它说明
+
+* Cell Ranger 输出的 t-SNE 坐标可以通过 `Seurat` 包中的 `SetDimReduction()`
+  函数整合到 R 对象文件中，参考脚本 `utils/update-seurat-obj.R`。Cell Ranger
+  输出的 t-SNE 坐标文件为 projection.csv。对于 10X 数据，该文件可以在 10X pipeline 输出结果的路径 `./outs/analysis/tsne/2_components/projection.csv`
+  找到)
 
 * 对基因别名的支持：对于人(human) 和小鼠(mouse) 的数据，基因名的输入框可以使用
   基因别名。例如输入的 CD56 会被自动转换为基因的标准名 NCAM1。若输入的基因名有

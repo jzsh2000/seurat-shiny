@@ -5,7 +5,10 @@ color_primary = '#CCCCCC'
 color_error = '#FF0000'
 color_success = '#00FF00'
 
-# default resolution
+# default n_dimensions used
+dims_default = 12
+
+# default cluster resolution
 res_default = 0.8
 
 # plot view scale factor
